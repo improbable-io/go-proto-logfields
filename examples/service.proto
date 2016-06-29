@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package example;
+
+import "github.com/improbable-io/go-proto-logfields/logfields.proto";
+
+message Note {
+  string text = 1 [(improbable.logfield) = {name: "note"}];
+}
+
+message Request {
+  string path = 1 [(improbable.logfield) = {name: "path"}];
+  repeated Note notes = 2;
+}
+
+message Response {
+  bool did_stuff = 1 [(improbable.logfield) = {name: "did_it"}];
+  Note note = 2;
+}

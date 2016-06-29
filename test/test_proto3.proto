@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package logfields_test;
+
+option go_package = "logfieldstest";
+
+import "github.com/improbable-io/go-proto-logfields/logfields.proto";
+
+message TestMessage3 {
+    message Inner {
+        string text = 1 [(improbable.logfield) = {name: "log_text"}];
+    }
+
+    int32 single_integer = 1 [(improbable.logfield) = {name: "an_int"}];
+    string single_string = 3 [(improbable.logfield) = {name: "a_string"}];
+    bytes single_bytes = 4 [(improbable.logfield) = {name: "some_bytes"}];
+
+    Inner single_message = 5;
+    repeated Inner repeated_messages = 6;
+}

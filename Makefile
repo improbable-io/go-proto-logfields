@@ -22,7 +22,7 @@ regenerate_examples: install
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src/github.com/google/protobuf/src \
 	  --proto_path=. \
-	  --go_out=Mgoogle/protobuf/descriptor.proto=github.com/golang/protobuf/protoc-gen-go/descriptor:. \
+	  --go_out=. \
 	  --gologfields_out=gogoimport=false:. \
 	  examples/*.proto
 
@@ -31,7 +31,7 @@ regenerate_test: install
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src/github.com/google/protobuf/src \
 	  --proto_path=. \
-	  --go_out=Mgoogle/protobuf/descriptor.proto=github.com/golang/protobuf/protoc-gen-go/descriptor:. \
+	  --go_out=. \
 	  --gologfields_out=gogoimport=false:. \
 	  test/*.proto
 

@@ -33,9 +33,38 @@ message SomethingRequest {
 }
 ```
 
+The logfields extractor can be generated with:
+```
+protoc \
+  --proto_path=${GOPATH//:/\/src --proto_path=}/src \
+  --proto_path=${GOPATH//:/\/src --proto_path=}/src/github.com/gogo/protobuf/src \
+  --proto_path=. \
+  --gogo_out=. \
+  --gologfields_out=. \
+  *.proto
+```
+
 With the generated code, a set of logging fields can be generated as follows:
 ```
 fields := (&SomethingRequest{What: "something"}).LogFields()
 fmt.Println(fields)
 // prints: map[what_was_requested: something]
 ```
+
+## Using golang/protobuf instead of gogo/protobuf
+
+By default, the output files use the `github.com/gogo/protobuf` implementation. To use the `github.com/golang/protobuf` implementation, the logfields generator must be passed a `gogoimport=false` flag as follows:
+```
+protoc \
+  --proto_path=${GOPATH//:/\/src --proto_path=}/src \
+  --proto_path=${GOPATH//:/\/src --proto_path=}/src/github.com/google/protobuf/src \
+  --proto_path=. \
+  --go_out=. \
+  --gologfields_out=gogoimport=false:. \
+  *.proto
+```
+
+The changes are:
+* The `--proto_path` is adjusted from the gogo repository to the google repository.
+* `--gogo_out` is replaced with `--go_out`.
+* `--gologfields_out=.` is replaced with `--gologfields_out=gogoimport=false:.`.

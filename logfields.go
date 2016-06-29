@@ -61,6 +61,8 @@ func getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *LogField {
 	return e.(*LogField)
 }
 
+// Convert a UpperCamelCase to lowerCamelCase.
+// Handles initialisms as the first word: HTMLThing is converted to htmlThing.
 func lowerCamel(varName string) string {
 	firstNonUpper := 0
 	for ; firstNonUpper < len(varName); firstNonUpper++ {
@@ -73,6 +75,8 @@ func lowerCamel(varName string) string {
 		return varName
 	} else if lastInitUpper == 0 {
 		return strings.ToLower(varName[:1]) + varName[1:]
+	} else if lastInitUpper == len(varName)-1 {
+		return strings.ToLower(varName)
 	} else {
 		return strings.ToLower(varName[:lastInitUpper]) + varName[lastInitUpper:]
 	}

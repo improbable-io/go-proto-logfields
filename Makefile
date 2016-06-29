@@ -36,4 +36,4 @@ regenerate_test: install
 	  test/*.proto
 
 test: regenerate_test
-	go test github.com/improbable-io/go-proto-logfields/test
+	go test -v ./...

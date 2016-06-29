@@ -26,36 +26,46 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 func (this *Note) LogFields() map[string]string {
+	// Handle being called on nil message.
 	if this == nil {
 		return map[string]string{}
 	}
+	// Generate fields for this message.
 	fields := map[string]string{
 		"note": this.Text,
 	}
 	return fields
 }
 func (this *Request) LogFields() map[string]string {
+	// Handle being called on nil message.
 	if this == nil {
 		return map[string]string{}
 	}
+	// Generate fields for this message.
 	fields := map[string]string{
 		"path": this.Path,
 	}
 	return fields
 }
 func (this *Response) LogFields() map[string]string {
+	// Handle being called on nil message.
 	if this == nil {
 		return map[string]string{}
 	}
+	// Gather fields from child messages.
+	// subCount tracks the total number of fields, assuming no duplicates, to reduce allocations later.
 	subCount := 0
 	noteFields := this.Note.LogFields()
 	subCount += len(noteFields)
+	// Generate fields for this message.
 	fields := map[string]string{
 		"did_it": fmt.Sprintf("%v", this.DidStuff),
 	}
+	// If no inner messages added any fields, the fields map is complete.
 	if subCount == 0 {
 		return fields
 	}
+	// Merge all the field maps.
 	res := make(map[string]string, subCount+len(fields))
 	for k, v := range noteFields {
 		res[k] = v

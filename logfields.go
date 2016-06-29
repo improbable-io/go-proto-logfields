@@ -88,10 +88,9 @@ func (p *plugin) GetFieldVar(msg *generator.Descriptor, field *descriptor.FieldD
 
 func (p *plugin) generateFieldsExtractor(msg *generator.Descriptor, proto3 bool) {
 	p.P(`func (this *`, generator.CamelCaseSlice(msg.TypeName()), `) LogFields() map[string]string {`)
-	defer p.P(`}`)
 	p.In()
-	defer p.Out()
 
+	p.P(`// Handle being called on nil message.`)
 	p.P(`if this == nil {`)
 	p.In()
 	p.P(`return map[string]string{}`)
@@ -105,6 +104,8 @@ func (p *plugin) generateFieldsExtractor(msg *generator.Descriptor, proto3 bool)
 		}
 	}
 	if hasChildren {
+		p.P(`// Gather fields from child messages.`)
+		p.P(`// subCount tracks the total number of fields, assuming no duplicates, to reduce allocations later.`)
 		p.P(`subCount := 0`)
 		for _, field := range msg.GetField() {
 			if field.IsMessage() && !field.IsRepeated() {
@@ -114,6 +115,7 @@ func (p *plugin) generateFieldsExtractor(msg *generator.Descriptor, proto3 bool)
 		}
 	}
 
+	p.P(`// Generate fields for this message.`)
 	p.P(`fields := map[string]string{`)
 	p.In()
 	for _, field := range msg.GetField() {
@@ -147,16 +149,21 @@ func (p *plugin) generateFieldsExtractor(msg *generator.Descriptor, proto3 bool)
 	p.P(`}`)
 
 	if !hasChildren {
+		// If there were no message fields, the `fields` map is already complete
 		p.P(`return fields`)
+		p.Out()
+		p.P(`}`)
 		return
 	}
 
+	p.P(`// If no inner messages added any fields, the fields map is complete.`)
 	p.P(`if subCount == 0 {`)
 	p.In()
 	p.P(`return fields`)
 	p.Out()
 	p.P(`}`)
 
+	p.P(`// Merge all the field maps.`)
 	p.P(`res := make(map[string]string, subCount + len(fields))`)
 	for _, field := range msg.GetField() {
 		if field.GetType() == descriptor.FieldDescriptorProto_TYPE_MESSAGE && field.GetLabel() != descriptor.FieldDescriptorProto_LABEL_REPEATED {
@@ -173,4 +180,7 @@ func (p *plugin) generateFieldsExtractor(msg *generator.Descriptor, proto3 bool)
 	p.Out()
 	p.P(`}`)
 	p.P(`return res`)
+
+	p.Out()
+	p.P(`}`)
 }

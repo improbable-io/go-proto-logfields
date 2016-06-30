@@ -25,53 +25,83 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-func (this *Note) LogFields() map[string]string {
+func (this *Note) textLogFields() []string {
+	var vals []string
+	for _, val := range this.Text {
+		vals = append(vals, val)
+	}
+	return vals
+}
+func (this *Note) LogFields() map[string][]string {
 	// Handle being called on nil message.
 	if this == nil {
-		return map[string]string{}
+		return map[string][]string{}
 	}
 	// Generate fields for this message.
-	fields := map[string]string{
-		"note": this.Text,
+	return map[string][]string{
+		"author": []string{this.Author},
+		"note":   this.textLogFields(),
 	}
-	return fields
 }
-func (this *Request) LogFields() map[string]string {
+
+func (this *Request) LogFields() map[string][]string {
 	// Handle being called on nil message.
 	if this == nil {
-		return map[string]string{}
-	}
-	// Generate fields for this message.
-	fields := map[string]string{
-		"path": this.Path,
-	}
-	return fields
-}
-func (this *Response) LogFields() map[string]string {
-	// Handle being called on nil message.
-	if this == nil {
-		return map[string]string{}
+		return map[string][]string{}
 	}
 	// Gather fields from child messages.
-	// subCount tracks the total number of fields, assuming no duplicates, to reduce allocations later.
-	subCount := 0
+	var hasInner bool
 	noteFields := this.Note.LogFields()
-	subCount += len(noteFields)
-	// Generate fields for this message.
-	fields := map[string]string{
-		"did_it": fmt.Sprintf("%v", this.DidStuff),
-	}
-	// If no inner messages added any fields, the fields map is complete.
-	if subCount == 0 {
-		return fields
+	hasInner = hasInner || len(noteFields) > 0
+	if !hasInner {
+		// If no inner messages added any fields, the fields map is complete.
+		return map[string][]string{
+			"path": []string{this.Path},
+		}
 	}
 	// Merge all the field maps.
-	res := make(map[string]string, subCount+len(fields))
+	res := map[string][]string{}
+	res["path"] = append(res["path"], this.Path)
 	for k, v := range noteFields {
-		res[k] = v
+		res[k] = append(res[k], v...)
 	}
-	for k, v := range fields {
-		res[k] = v
+	return res
+}
+
+func (this *Response) notesLogFields() map[string][]string {
+	fields := map[string][]string{}
+	for _, msg := range this.Notes {
+		for k, v := range msg.LogFields() {
+			fields[k] = append(fields[k], v...)
+		}
+	}
+	return fields
+}
+func (this *Response) LogFields() map[string][]string {
+	// Handle being called on nil message.
+	if this == nil {
+		return map[string][]string{}
+	}
+	// Gather fields from child messages.
+	var hasInner bool
+	changedNoteFields := this.ChangedNote.LogFields()
+	hasInner = hasInner || len(changedNoteFields) > 0
+	notesFields := this.notesLogFields()
+	hasInner = hasInner || len(notesFields) > 0
+	if !hasInner {
+		// If no inner messages added any fields, the fields map is complete.
+		return map[string][]string{
+			"did_it": []string{fmt.Sprintf("%v", this.DidStuff)},
+		}
+	}
+	// Merge all the field maps.
+	res := map[string][]string{}
+	res["did_it"] = append(res["did_it"], fmt.Sprintf("%v", this.DidStuff))
+	for k, v := range changedNoteFields {
+		res[k] = append(res[k], v...)
+	}
+	for k, v := range notesFields {
+		res[k] = append(res[k], v...)
 	}
 	return res
 }

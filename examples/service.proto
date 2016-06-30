@@ -5,15 +5,17 @@ package example;
 import "github.com/improbable-io/go-proto-logfields/logfields.proto";
 
 message Note {
-  string text = 1 [(improbable.logfield) = {name: "note"}];
+  string author = 1 [(improbable.logfield) = {name: "author"}];
+  repeated string text = 2 [(improbable.logfield) = {name: "note"}];
 }
 
 message Request {
   string path = 1 [(improbable.logfield) = {name: "path"}];
-  repeated Note notes = 2;
+  Note note = 2;
 }
 
 message Response {
   bool did_stuff = 1 [(improbable.logfield) = {name: "did_it"}];
-  Note note = 2;
+  Note changed_note = 2;
+  repeated Note notes = 3;
 }

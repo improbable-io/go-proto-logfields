@@ -12,9 +12,12 @@ message TestMessage3 {
     }
 
     int32 single_integer = 1 [(improbable.logfield) = {name: "an_int"}];
+    repeated int32 repeated_integer = 2 [(improbable.logfield) = {name: "some_ints"}];
     string single_string = 3 [(improbable.logfield) = {name: "a_string"}];
-    bytes single_bytes = 4 [(improbable.logfield) = {name: "some_bytes"}];
+    repeated string repeated_string = 4 [(improbable.logfield) = {name: "some_strings"}];
+    bytes single_bytes = 5 [(improbable.logfield) = {name: "some_bytes"}];
+    repeated bytes repeated_bytes = 6 [(improbable.logfield) = {name: "many_bytes"}];
 
-    Inner single_message = 5;
-    repeated Inner repeated_messages = 6;
+    Inner single_message = 7;
+    repeated Inner repeated_messages = 8;
 }

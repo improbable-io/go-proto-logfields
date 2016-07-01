@@ -165,6 +165,7 @@ func (p *plugin) generateRepeatedFieldExtractor(msg *generator.Descriptor, field
 
 func (p *plugin) generateFieldsLiteralReturn(msg *generator.Descriptor, proto3 bool) {
 	fieldExpr := map[string]string{}
+	var nameOrder []string
 	for _, field := range msg.GetField() {
 		if field.IsMessage() {
 			continue
@@ -172,6 +173,10 @@ func (p *plugin) generateFieldsLiteralReturn(msg *generator.Descriptor, proto3 b
 		logField := getLogFieldIfAny(field)
 		if logField == nil {
 			continue
+		}
+
+		if _, ok := fieldExpr[logField.Name]; !ok {
+			nameOrder = append(nameOrder, logField.Name)
 		}
 
 		if field.IsRepeated() {
@@ -193,8 +198,8 @@ func (p *plugin) generateFieldsLiteralReturn(msg *generator.Descriptor, proto3 b
 
 	p.P(`return map[string][]string{`)
 	p.In()
-	for name, expr := range fieldExpr {
-		p.P(strconv.Quote(name), `: `, expr, `,`)
+	for _, name := range nameOrder {
+		p.P(strconv.Quote(name), `: `, fieldExpr[name], `,`)
 	}
 	p.Out()
 	p.P(`}`)
@@ -219,7 +224,7 @@ func (p *plugin) generateFieldsExtractor(msg *generator.Descriptor, proto3 bool)
 		}
 	}
 	if !hasChildren {
-		// If there were no message fields or naming overlaps, return a fields literal directly
+		// If there were no message fields, return a fields literal directly
 		p.P(`// Generate fields for this message.`)
 		p.generateFieldsLiteralReturn(msg, proto3)
 		p.Out()

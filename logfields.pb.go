@@ -28,7 +28,8 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion1
 
 type LogField struct {
-	// name of the log context field where the value of this field should be recorded.
+	// name of the log context field where the value of this field should be
+	// recorded. Fields with empty names are ignored.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 }
 

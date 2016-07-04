@@ -13,7 +13,7 @@ extend google.protobuf.FieldOptions {
   // context in log messages. This applies when a log message is generated
   // while processing a proto message that contains the field (directly or via
   // an embedded message).
-  LogField logfield = 12345;
+  LogField logfield = 261337;
 }
 
 message LogField {

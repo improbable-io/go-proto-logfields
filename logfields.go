@@ -43,13 +43,19 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 	}
 
 	for _, msg := range file.Messages() {
+		logNames := map[string]struct{}{}
 		for _, field := range msg.GetField() {
-			if !p.hasLogField(field) {
+			logField := p.getLogFieldIfAny(field)
+			if logField == nil {
 				continue
 			}
 			if field.IsRepeated() {
 				p.Fail(fmt.Sprintf("Cannot log repeated field %v.%v", msg.GetName(), field.GetName()))
 			}
+			if _, duplicate := logNames[logField.Name]; duplicate {
+				p.Fail(fmt.Sprintf("Duplicate log field name %v in %v", logField.Name, msg.GetName()))
+			}
+			logNames[logField.Name] = struct{}{}
 		}
 	}
 

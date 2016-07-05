@@ -14,6 +14,7 @@ func TestNilProto3(t *testing.T) {
 	assert.Equal(t, map[string][]string{}, (*FieldsTest3)(nil).LogFields())
 	assert.Equal(t, map[string][]string{}, (*EmbeddedTest3)(nil).LogFields())
 	assert.Equal(t, map[string][]string{}, (*OneOfTest3)(nil).LogFields())
+	assert.Equal(t, map[string][]string{}, (*MapTest3)(nil).LogFields())
 }
 
 func TestEmptyUnloggedProto3(t *testing.T) {
@@ -43,6 +44,10 @@ func TestEmptyWithOneOf(t *testing.T) {
 		"a_string": {""},
 		"log_text": {""},
 	}, (&OneOfTest3{}).LogFields())
+}
+
+func TestEmptyWithMap(t *testing.T) {
+	assert.Equal(t, map[string][]string{}, (&MapTest3{}).LogFields())
 }
 
 func TestEmbeddedMessagesEmpty(t *testing.T) {
@@ -88,6 +93,22 @@ func TestOneOfStringField(t *testing.T) {
 		"a_string": {""},
 		"log_text": {"", ""},
 	}, fields)
+}
+
+func TestMapEntry(t *testing.T) {
+	fields := (&MapTest3{
+		AStringMap: map[string]string{
+			"a_string_key": "a_string_value",
+		},
+		AStringToInnerMap: map[string]*MapTest3_Inner{
+			"a_inner_key": &MapTest3_Inner{
+				SingleInnerString: "a_inner_string_value",
+			},
+		},
+	})
+	assert.Equal(t, map[string][]string{
+		"log_text": {"a_inner_string_value"},
+	}, fields.LogFields())
 }
 
 func TestProto3Formatting(t *testing.T) {

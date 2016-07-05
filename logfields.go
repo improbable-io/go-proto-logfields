@@ -41,6 +41,13 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 	if !p.useGogo {
 		vanity.TurnOffGogoImport(file.FileDescriptorProto)
 	}
+	mapLogging := map[string]bool{}
+	for _, msg := range file.Messages() {
+		if msg.GetOptions().GetMapEntry() {
+			_, valueField := msg.GetMapFields()
+			mapLogging[strings.Join(msg.TypeName(), ".")] = valueField.IsMessage()
+		}
+	}
 	for _, msg := range file.Messages() {
 		if msg.GetOptions().GetMapEntry() {
 			continue
@@ -51,9 +58,9 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 
 		proto3 := gogoproto.IsProto3(file.FileDescriptorProto)
 		for _, field := range msg.GetField() {
-			p.generateFieldExtractor(msg, field, proto3)
+			p.generateFieldExtractor(msg, field, mapLogging, proto3)
 		}
-		p.generateLogsExtractor(msg, proto3)
+		p.generateLogsExtractor(msg, mapLogging, proto3)
 	}
 }
 
@@ -98,6 +105,12 @@ func lowerCamel(varName string) string {
 	}
 }
 
+func isLoggedMap(msg *generator.Descriptor, field *descriptor.FieldDescriptorProto, mapLogging map[string]bool) (bool, bool) {
+	pkgRelType := strings.TrimPrefix(field.GetTypeName(), "."+msg.File().GetPackage()+".")
+	logMap, isMap := mapLogging[pkgRelType]
+	return logMap, isMap
+}
+
 func (p *plugin) GetFieldVar(msg *generator.Descriptor, field *descriptor.FieldDescriptorProto) string {
 	return lowerCamel(p.GetOneOfFieldName(msg, field)) + `Fields`
 }
@@ -129,10 +142,12 @@ func (p *plugin) getFmtExpr(fieldName string, field *descriptor.FieldDescriptorP
 	return fmtExpr
 }
 
-func (p *plugin) generateFieldExtractor(msg *generator.Descriptor, field *descriptor.FieldDescriptorProto, proto3 bool) {
+func (p *plugin) generateFieldExtractor(msg *generator.Descriptor, field *descriptor.FieldDescriptorProto, mapLogging map[string]bool, proto3 bool) {
 	typeName := generator.CamelCaseSlice(msg.TypeName())
 	funcName := p.GetFieldMethod(msg, field)
 	fieldName := p.GetFieldName(msg, field)
+	logMap, isMap := isLoggedMap(msg, field, mapLogging)
+
 	if field.IsMessage() && field.OneofIndex != nil {
 		// Messages in a oneof are never repeated, but we need to do a typecast.
 		p.P(`func (this *`, typeName, `) `, funcName, `() map[string][]string {`)
@@ -145,7 +160,7 @@ func (p *plugin) generateFieldExtractor(msg *generator.Descriptor, field *descri
 		p.P(`return map[string][]string{}`)
 		p.Out()
 		p.P(`}`)
-	} else if field.IsMessage() && field.IsRepeated() {
+	} else if field.IsMessage() && field.IsRepeated() && (!isMap || logMap) {
 		// For repeated message fields, we need to gather the maps from each item
 		p.P(`func (this *`, typeName, `) `, funcName, `() map[string][]string {`)
 		p.In()
@@ -224,7 +239,7 @@ func (p *plugin) generateFieldsLiteralReturn(msg *generator.Descriptor, proto3 b
 	p.P(`}`)
 }
 
-func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
+func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, mapLogging map[string]bool, proto3 bool) {
 	p.P(`func (this *`, generator.CamelCaseSlice(msg.TypeName()), `) LogFields() map[string][]string {`)
 	p.In()
 
@@ -284,7 +299,10 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 	p.P(`// Gather fields from child messages.`)
 	p.P(`var hasInner bool`)
 	for _, field := range msg.GetField() {
-		if !field.IsMessage() && field.OneofIndex != nil && hasLogField(field) {
+		logMap, isMap := isLoggedMap(msg, field, mapLogging)
+		if isMap && !logMap {
+			continue
+		} else if !field.IsMessage() && field.OneofIndex != nil && hasLogField(field) {
 			p.P(`hasInner = hasInner || this.`, p.GetFieldName(msg, field), ` != nil`)
 			continue
 		} else if !field.IsMessage() {
@@ -308,6 +326,10 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 	p.P(`// Merge all the field maps.`)
 	p.P(`res := map[string][]string{}`)
 	for _, field := range msg.GetField() {
+		logMap, isMap := isLoggedMap(msg, field, mapLogging)
+		if isMap && !logMap {
+			continue
+		}
 		if field.IsMessage() {
 			p.P(`for k, v := range ` + p.GetFieldVar(msg, field) + ` {`)
 			p.In()

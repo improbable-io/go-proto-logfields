@@ -51,3 +51,11 @@ message OneOfTest3 {
     }
 }
 
+message MapTest3 {
+    message Inner {
+        string single_inner_string = 1 [(improbable.logfield) = {name: "log_text"}];
+    }
+
+    map<string, string> a_string_map = 1;
+    map<string, Inner> a_string_to_inner_map = 2;
+}

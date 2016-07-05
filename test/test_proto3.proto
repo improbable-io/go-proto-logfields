@@ -8,20 +8,14 @@ import "github.com/improbable-io/go-proto-logfields/logfields.proto";
 
 message UnloggedTest3 {
     int32 single_integer = 1;
-    repeated int32 repeated_integer = 2;
     string single_string = 3;
-    repeated string repeated_string = 4;
     bytes single_bytes = 5;
-    repeated bytes repeated_bytes = 6;
 }
 
 message FieldsTest3 {
     int32 single_integer = 1 [(improbable.logfield) = {name: "an_int"}];
-    repeated int32 repeated_integer = 2 [(improbable.logfield) = {name: "some_ints"}];
     string single_string = 3 [(improbable.logfield) = {name: "a_string"}];
-    repeated string repeated_string = 4 [(improbable.logfield) = {name: "some_strings"}];
     bytes single_bytes = 5 [(improbable.logfield) = {name: "some_bytes"}];
-    repeated bytes repeated_bytes = 6 [(improbable.logfield) = {name: "many_bytes"}];
 }
 
 message EmbeddedTest3 {
@@ -41,8 +35,7 @@ message OneOfTest3 {
         string single_inner_string = 1 [(improbable.logfield) = {name: "log_text"}];
     }
 
-    string single_string = 1 [(improbable.logfield) = {name: "a_string"}];
-    string outer_text = 2 [(improbable.logfield) = {name: "log_text"}];
+    string outer_text = 2 [(improbable.logfield) = {name: "a_string"}];
 
     oneof a_oneof {
         string unlogged_oneof_string = 3;

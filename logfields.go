@@ -41,13 +41,18 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 	if !p.useGogo {
 		vanity.TurnOffGogoImport(file.FileDescriptorProto)
 	}
-	mapLogging := map[string]bool{}
+
 	for _, msg := range file.Messages() {
-		if msg.GetOptions().GetMapEntry() {
-			_, valueField := msg.GetMapFields()
-			mapLogging[strings.Join(msg.TypeName(), ".")] = valueField.IsMessage()
+		for _, field := range msg.GetField() {
+			if !p.hasLogField(field) {
+				continue
+			}
+			if field.IsRepeated() {
+				p.Fail(fmt.Sprintf("Cannot log repeated field %v.%v", msg.GetName(), field.GetName()))
+			}
 		}
 	}
+
 	for _, msg := range file.Messages() {
 		if msg.GetOptions().GetMapEntry() {
 			continue
@@ -55,16 +60,11 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 
 		// Split the generated code into sections grouped by the outermost-level message being processed
 		p.P()
-
-		proto3 := gogoproto.IsProto3(file.FileDescriptorProto)
-		for _, field := range msg.GetField() {
-			p.generateFieldExtractor(msg, field, mapLogging, proto3)
-		}
-		p.generateLogsExtractor(msg, mapLogging, proto3)
+		p.generateLogsExtractor(msg, gogoproto.IsProto3(file.FileDescriptorProto))
 	}
 }
 
-func getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *LogField {
+func (p *plugin) getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *LogField {
 	opts := field.GetOptions()
 	if opts == nil {
 		return nil
@@ -80,8 +80,8 @@ func getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *LogField {
 	return logField
 }
 
-func hasLogField(field *descriptor.FieldDescriptorProto) bool {
-	return getLogFieldIfAny(field) != nil
+func (p *plugin) hasLogField(field *descriptor.FieldDescriptorProto) bool {
+	return p.getLogFieldIfAny(field) != nil
 }
 
 // Convert a UpperCamelCase to lowerCamelCase.
@@ -105,18 +105,12 @@ func lowerCamel(varName string) string {
 	}
 }
 
-func isLoggedMap(msg *generator.Descriptor, field *descriptor.FieldDescriptorProto, mapLogging map[string]bool) (bool, bool) {
-	pkgRelType := strings.TrimPrefix(field.GetTypeName(), "."+msg.File().GetPackage()+".")
-	logMap, isMap := mapLogging[pkgRelType]
-	return logMap, isMap
-}
-
 func (p *plugin) GetFieldVar(msg *generator.Descriptor, field *descriptor.FieldDescriptorProto) string {
-	return lowerCamel(p.GetOneOfFieldName(msg, field)) + `Fields`
+	return lowerCamel(p.GetFieldName(msg, field)) + `Fields`
 }
 
 func (p *plugin) GetFieldMethod(msg *generator.Descriptor, field *descriptor.FieldDescriptorProto) string {
-	return lowerCamel(p.GetOneOfFieldName(msg, field)) + `LogFields`
+	return lowerCamel(p.GetFieldName(msg, field)) + `LogFields`
 }
 
 func (p *plugin) getFieldFmtExpr(msg *generator.Descriptor, field *descriptor.FieldDescriptorProto, proto3 bool) string {
@@ -142,61 +136,9 @@ func (p *plugin) getFmtExpr(fieldName string, field *descriptor.FieldDescriptorP
 	return fmtExpr
 }
 
-func (p *plugin) generateFieldExtractor(msg *generator.Descriptor, field *descriptor.FieldDescriptorProto, mapLogging map[string]bool, proto3 bool) {
-	typeName := generator.CamelCaseSlice(msg.TypeName())
-	funcName := p.GetFieldMethod(msg, field)
-	fieldName := p.GetFieldName(msg, field)
-	logMap, isMap := isLoggedMap(msg, field, mapLogging)
-
-	if field.IsMessage() && field.OneofIndex != nil {
-		// Messages in a oneof are never repeated, but we need to do a typecast.
-		p.P(`func (this *`, typeName, `) `, funcName, `() map[string][]string {`)
-		p.In()
-		p.P(`if f, ok := this.`, fieldName, `.(*`, p.OneOfTypeName(msg, field), `); ok {`)
-		p.In()
-		p.P(`return f.`, p.GetOneOfFieldName(msg, field), `.LogFields()`)
-		p.Out()
-		p.P(`}`)
-		p.P(`return map[string][]string{}`)
-		p.Out()
-		p.P(`}`)
-	} else if field.IsMessage() && field.IsRepeated() && (!isMap || logMap) {
-		// For repeated message fields, we need to gather the maps from each item
-		p.P(`func (this *`, typeName, `) `, funcName, `() map[string][]string {`)
-		p.In()
-		p.P(`fields := map[string][]string{}`)
-		p.P(`for _, msg := range this.`, fieldName, ` {`)
-		p.In()
-		p.P(`for k, v := range msg.LogFields() {`)
-		p.In()
-		p.P(`fields[k] = append(fields[k], v...)`)
-		p.Out()
-		p.P(`}`)
-		p.Out()
-		p.P(`}`)
-		p.P(`return fields`)
-		p.Out()
-		p.P(`}`)
-	} else if !field.IsMessage() && field.IsRepeated() && hasLogField(field) {
-		// For repeated primitive fields, we need to format each item and put them in a slice
-		p.P(`func (this *`, typeName, `) `, funcName, `() []string {`)
-		p.In()
-		p.P(`var vals []string`)
-		p.P(`for _, val := range this.`, fieldName, ` {`)
-		p.In()
-		p.P(`vals = append(vals, `, p.getFmtExpr(`val`, field), `)`)
-		p.Out()
-		p.P(`}`)
-		p.P(`return vals`)
-		p.Out()
-		p.P(`}`)
-	}
-}
-
 func (p *plugin) generateFieldsLiteralReturn(msg *generator.Descriptor, proto3 bool) {
-	fieldExpr := map[string]string{}
-	// For output determinism, we track the ordering based on first occurrence of a log field name.
-	var nameOrder []string
+	p.P(`return map[string]string{`)
+	p.In()
 	for _, field := range msg.GetField() {
 		if field.IsMessage() {
 			continue
@@ -204,155 +146,170 @@ func (p *plugin) generateFieldsLiteralReturn(msg *generator.Descriptor, proto3 b
 		if field.OneofIndex != nil {
 			continue
 		}
-		logField := getLogFieldIfAny(field)
+		logField := p.getLogFieldIfAny(field)
 		if logField == nil {
 			continue
 		}
 
-		if _, ok := fieldExpr[logField.Name]; !ok {
-			nameOrder = append(nameOrder, logField.Name)
-		}
-
-		if field.IsRepeated() {
-			expr := `this.` + lowerCamel(p.GetFieldName(msg, field)) + `LogFields()`
-			if fieldExpr[logField.Name] == "" {
-				fieldExpr[logField.Name] = expr
-			} else {
-				fieldExpr[logField.Name] = fmt.Sprintf(`append(%v, %v...)`, fieldExpr[logField.Name], expr)
-			}
-		} else {
-			expr := p.getFieldFmtExpr(msg, field, proto3)
-			if fieldExpr[logField.Name] == "" {
-				fieldExpr[logField.Name] = fmt.Sprintf(`[]string{%v}`, expr)
-			} else {
-				fieldExpr[logField.Name] = fmt.Sprintf(`append(%v, %v)`, fieldExpr[logField.Name], expr)
-			}
-		}
-	}
-
-	p.P(`return map[string][]string{`)
-	p.In()
-	for _, name := range nameOrder {
-		p.P(strconv.Quote(name), `: `, fieldExpr[name], `,`)
+		expr := p.getFieldFmtExpr(msg, field, proto3)
+		p.P(strconv.Quote(logField.Name), `: `, expr, `,`)
 	}
 	p.Out()
 	p.P(`}`)
 }
 
-func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, mapLogging map[string]bool, proto3 bool) {
-	p.P(`func (this *`, generator.CamelCaseSlice(msg.TypeName()), `) LogFields() map[string][]string {`)
+func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
+	p.P(`func (this *`, generator.CamelCaseSlice(msg.TypeName()), `) LogFields() map[string]string {`)
 	p.In()
 
-	var hasLoggedOneOf bool
+	var needsBody bool
 	for _, field := range msg.GetField() {
-		if field.OneofIndex == nil {
+		if field.IsRepeated() {
 			continue
 		}
-		if field.IsMessage() || hasLogField(field) {
-			hasLoggedOneOf = true
+		if field.IsMessage() || p.hasLogField(field) {
+			needsBody = true
 			break
 		}
 	}
-
-	if !hasLoggedOneOf {
-		var needsBody bool
-		for _, field := range msg.GetField() {
-			if field.IsMessage() || hasLogField(field) {
-				needsBody = true
-				break
-			}
-		}
-		if !needsBody {
-			// If the message has nothing that might generate log fields, we can immediately return an empty map and skip everything else
-			p.P(`return map[string][]string{}`)
-			p.Out()
-			p.P(`}`)
-			return
-		}
+	if !needsBody {
+		// If the message has nothing that might generate log fields, we can immediately return an empty map and skip everything else
+		p.P(`return map[string]string{}`)
+		p.Out()
+		p.P(`}`)
+		return
 	}
 
 	p.P(`// Handle being called on nil message.`)
 	p.P(`if this == nil {`)
 	p.In()
-	p.P(`return map[string][]string{}`)
+	p.P(`return map[string]string{}`)
 	p.Out()
 	p.P(`}`)
 
-	if !hasLoggedOneOf {
-		var hasChildren bool
+	canUseLiteral := true
+	for _, field := range msg.GetField() {
+		if field.IsMessage() || field.OneofIndex != nil {
+			canUseLiteral = false
+			break
+		}
+	}
+	if canUseLiteral {
+		// If there were no message fields, return a fields literal directly
+		p.P(`// Generate fields for this message.`)
+		p.generateFieldsLiteralReturn(msg, proto3)
+		p.Out()
+		p.P(`}`)
+		return
+	}
+
+	p.P(`// Gather fields from oneofs and child messages.`)
+	p.P(`var hasInner bool`)
+	loggedOneOfs := map[int]struct{}{}
+	// Generate code to build a log field map for each oenof.
+	for oneOfIndex, _ := range msg.GetOneofDecl() {
+		// Determine whether we can skip the oneof entirely.
+		// loggedOneOfField is used later as a proxy for the oneof
+		var loggedOneOfField *descriptor.FieldDescriptorProto
 		for _, field := range msg.GetField() {
-			if field.IsMessage() {
-				hasChildren = true
+			if field.OneofIndex == nil || int(field.GetOneofIndex()) != oneOfIndex {
+				continue
+			}
+			if field.IsMessage() || p.hasLogField(field) {
+				loggedOneOfField = field
 				break
 			}
 		}
-		if !hasChildren {
-			// If there were no message fields, return a fields literal directly
-			p.P(`// Generate fields for this message.`)
-			p.generateFieldsLiteralReturn(msg, proto3)
-			p.Out()
-			p.P(`}`)
-			return
+		if loggedOneOfField == nil {
+			continue
+		} else {
+			loggedOneOfs[oneOfIndex] = struct{}{}
 		}
+
+		// Generate a type-switch.
+		oneOfVar := p.GetFieldVar(msg, loggedOneOfField)
+		p.P(`var `, oneOfVar, ` map[string]string`)
+		p.P(`switch f := this.`, p.GetFieldName(msg, loggedOneOfField), `.(type) {`)
+		for _, field := range msg.GetField() {
+			if field.OneofIndex == nil || int(field.GetOneofIndex()) != oneOfIndex {
+				continue
+			}
+			// Oneof fields that can't generate log fields will use the default clause.
+			if !field.IsMessage() && !p.hasLogField(field) {
+				continue
+			}
+			p.P(`case *`, p.OneOfTypeName(msg, field), `:`)
+			p.In()
+			if field.IsMessage() {
+				p.P(oneOfVar, ` = f.`, p.GetOneOfFieldName(msg, field), `.LogFields()`)
+			} else {
+				logName := p.getLogFieldIfAny(field).Name
+				p.P(oneOfVar, ` = map[string]string{`, strconv.Quote(logName), `: `, p.getFmtExpr(`f.` + p.GetOneOfFieldName(msg, field), field), `}`)
+			}
+			p.Out()
+		}
+		p.P(`default:`)
+		p.In()
+		p.P(oneOfVar, ` = map[string]string{}`)
+		p.Out()
+		p.P(`}`)
+
+		// Keep track of whether any logfields were generated at runtime.
+		p.P(`hasInner = hasInner || len(`, oneOfVar, `) > 0`)
 	}
 
-	p.P(`// Gather fields from child messages.`)
-	p.P(`var hasInner bool`)
 	for _, field := range msg.GetField() {
-		logMap, isMap := isLoggedMap(msg, field, mapLogging)
-		if isMap && !logMap {
-			continue
-		} else if !field.IsMessage() && field.OneofIndex != nil && hasLogField(field) {
-			p.P(`hasInner = hasInner || this.`, p.GetFieldName(msg, field), ` != nil`)
+		if field.OneofIndex != nil {
 			continue
 		} else if !field.IsMessage() {
 			continue
 		} else if field.IsRepeated() {
-			p.P(p.GetFieldVar(msg, field), ` := this.`, p.GetFieldMethod(msg, field), `()`)
-		} else if field.OneofIndex != nil {
-			p.P(p.GetFieldVar(msg, field), ` := this.`, p.GetFieldMethod(msg, field), `()`)
+			continue
 		} else {
 			p.P(p.GetFieldVar(msg, field) + ` := this.` + p.GetFieldName(msg, field) + `.LogFields()`)
 		}
+		// Keep track of whether any logfields were generated at runtime.
 		p.P(`hasInner = hasInner || len(` + p.GetFieldVar(msg, field) + `) > 0`)
 	}
 	p.P(`if !hasInner {`)
 	p.In()
-	p.P(`// If no inner messages added any fields, the fields map is complete.`)
+	p.P(`// If no inner messages added any fields, avoid merging maps.`)
 	p.generateFieldsLiteralReturn(msg, proto3)
 	p.Out()
 	p.P(`}`)
 
 	p.P(`// Merge all the field maps.`)
-	p.P(`res := map[string][]string{}`)
+	p.P(`res := map[string]string{}`)
+	// Generally try and keep the order of fields intact.
+	// Merge each oneof on encountering the first field that belongs to it.
+	visitedOneOfs := map[int]struct{}{}
 	for _, field := range msg.GetField() {
-		logMap, isMap := isLoggedMap(msg, field, mapLogging)
-		if isMap && !logMap {
+		if field.IsRepeated() {
 			continue
 		}
-		if field.IsMessage() {
+		if field.OneofIndex != nil {
+			if _, logged := loggedOneOfs[int(field.GetOneofIndex())]; !logged {
+				continue
+			}
+			if _, visited := visitedOneOfs[int(field.GetOneofIndex())]; visited {
+				continue
+			}
+			visitedOneOfs[int(field.GetOneofIndex())] = struct{}{}
+		}
+
+		if field.IsMessage() || field.OneofIndex != nil {
 			p.P(`for k, v := range ` + p.GetFieldVar(msg, field) + ` {`)
 			p.In()
-			p.P(`res[k] = append(res[k], v...)`)
-			p.Out()
-			p.P(`}`)
-			continue
-		}
-		logField := getLogFieldIfAny(field)
-		if logField == nil {
-			continue
-		}
-		quoted := strconv.Quote(logField.Name)
-		if field.IsRepeated() {
-			p.P(`res[`, quoted, `] = append(res[`, quoted, `], this.`, p.GetFieldMethod(msg, field), `()...)`)
-		} else if field.OneofIndex != nil {
-			p.P(`if f, ok := this.`, p.GetFieldName(msg, field), `.(*`, p.OneOfTypeName(msg, field), `); ok {`)
-			p.In()
-			p.P(`res[`, quoted, ` ] = append(res[`, quoted, `], `, p.getFmtExpr(`f.`+p.GetOneOfFieldName(msg, field), field), `)`)
+			p.P(`res[k] = v`)
 			p.Out()
 			p.P(`}`)
 		} else {
-			p.P(`res[`, quoted, `] = append(res[`, quoted, `], `, p.getFieldFmtExpr(msg, field, proto3), `)`)
+			logField := p.getLogFieldIfAny(field)
+			if logField == nil {
+				continue
+			}
+			quoted := strconv.Quote(logField.Name)
+			p.P(`res[`, quoted, `] = `, p.getFieldFmtExpr(msg, field, proto3))
 		}
 	}
 

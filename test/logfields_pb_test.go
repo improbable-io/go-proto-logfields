@@ -10,12 +10,17 @@ import (
 )
 
 func TestNilProto3(t *testing.T) {
-	fields := (*TestMessage3)(nil).LogFields()
-	assert.Equal(t, map[string][]string{}, fields)
+	assert.Equal(t, map[string][]string{}, (*UnloggedTest3)(nil).LogFields())
+	assert.Equal(t, map[string][]string{}, (*FieldsTest3)(nil).LogFields())
+	assert.Equal(t, map[string][]string{}, (*EmbeddedTest3)(nil).LogFields())
+	assert.Equal(t, map[string][]string{}, (*OneOfTest3)(nil).LogFields())
 }
 
-func TestEmptyProto3(t *testing.T) {
-	fields := (&TestMessage3{}).LogFields()
+func TestEmptyUnloggedProto3(t *testing.T) {
+	assert.Equal(t, map[string][]string{}, (&UnloggedTest3{}).LogFields())
+}
+
+func TestEmptyWithLoggedFields(t *testing.T) {
 	assert.Equal(t, map[string][]string{
 		"an_int":       {"0"},
 		"some_ints":    nil,
@@ -23,40 +28,76 @@ func TestEmptyProto3(t *testing.T) {
 		"some_strings": nil,
 		"some_bytes":   {""},
 		"many_bytes":   nil,
+	}, (&FieldsTest3{}).LogFields())
+}
+
+func TestEmptyWithEmbeddedMessages(t *testing.T) {
+	assert.Equal(t, map[string][]string{
+		"a_string": {""},
+		"log_text": {""},
+	}, (&EmbeddedTest3{}).LogFields())
+}
+
+func TestEmptyWithOneOf(t *testing.T) {
+	assert.Equal(t, map[string][]string{
+		"a_string": {""},
+		"log_text": {""},
+	}, (&OneOfTest3{}).LogFields())
+}
+
+func TestEmbeddedMessagesEmpty(t *testing.T) {
+	fields := (&EmbeddedTest3{
+		SingleMessage: &EmbeddedTest3_Inner{},
+		RepeatedMessages: []*EmbeddedTest3_Inner{
+			&EmbeddedTest3_Inner{},
+		},
+	}).LogFields()
+	assert.Equal(t, map[string][]string{
+		"a_string": {""},
+		"log_text": {"", "", ""},
 	}, fields)
 }
 
-func TestEmptyProto3WithChild(t *testing.T) {
-	fields := (&TestMessage3{
-		SingleMessage:    &TestMessage3_Inner{},
-		RepeatedMessages: []*TestMessage3_Inner{&TestMessage3_Inner{}},
+func TestOneOfEmbeddedMessageEmpty(t *testing.T) {
+	fields := (&OneOfTest3{
+		AOneof: &OneOfTest3_SingleOneofMessage{
+			&OneOfTest3_Inner{},
+		},
 	}).LogFields()
 	assert.Equal(t, map[string][]string{
-		"an_int":       {"0"},
-		"some_ints":    nil,
-		"a_string":     {""},
-		"some_strings": nil,
-		"some_bytes":   {""},
-		"many_bytes":   nil,
-		"log_text":     {"", ""},
+		"a_string": {""},
+		"log_text": {"", ""},
+	}, fields)
+}
+
+func TestOneOfUnloggedField(t *testing.T) {
+	fields := (&OneOfTest3{
+		AOneof: &OneOfTest3_UnloggedOneofString{},
+	}).LogFields()
+	assert.Equal(t, map[string][]string{
+		"a_string": {""},
+		"log_text": {""},
+	}, fields)
+}
+
+func TestOneOfStringField(t *testing.T) {
+	fields := (&OneOfTest3{
+		AOneof: &OneOfTest3_SingleOneofString{},
+	}).LogFields()
+	assert.Equal(t, map[string][]string{
+		"a_string": {""},
+		"log_text": {"", ""},
 	}, fields)
 }
 
 func TestProto3Formatting(t *testing.T) {
-	fields := (&TestMessage3{
+	fields := (&FieldsTest3{
 		SingleInteger:   42,
 		RepeatedInteger: []int32{43, 44},
 		SingleString:    "23",
 		RepeatedString:  []string{"24", "25"},
 		SingleBytes:     []byte{1, 'a'},
 		RepeatedBytes:   [][]byte{{2}, {'b'}},
-		SingleMessage: &TestMessage3_Inner{
-			Text: "a logged text",
-		},
-		RepeatedMessages: []*TestMessage3_Inner{
-			&TestMessage3_Inner{Text: "text 1"},
-			&TestMessage3_Inner{Text: "text 2"},
-		},
 	}).LogFields()
 	assert.Equal(t, map[string][]string{
 		"an_int":       {"42"},
@@ -65,7 +106,6 @@ func TestProto3Formatting(t *testing.T) {
 		"some_strings": {"24", "25"},
 		"some_bytes":   {"\x01a"},
 		"many_bytes":   {"\x02", "b"},
-		"log_text":     {"a logged text", "text 1", "text 2"},
 	}, fields)
 }
 

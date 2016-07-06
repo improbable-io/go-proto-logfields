@@ -23,9 +23,9 @@ func TestEmptyUnloggedProto3(t *testing.T) {
 
 func TestEmptyWithLoggedFields(t *testing.T) {
 	assert.Equal(t, map[string]string{
-		"an_int":       "0",
-		"a_string":     "",
-		"some_bytes":   "",
+		"an_int":     "0",
+		"a_string":   "",
+		"some_bytes": "",
 	}, (&FieldsTest3{}).LogFields())
 }
 
@@ -120,14 +120,14 @@ func TestMapEntry(t *testing.T) {
 
 func TestProto3Formatting(t *testing.T) {
 	fields := (&FieldsTest3{
-		SingleInteger:   42,
-		SingleString:    "23",
-		SingleBytes:     []byte{1, 'a'},
+		SingleInteger: 42,
+		SingleString:  "23",
+		SingleBytes:   []byte{1, 'a'},
 	}).LogFields()
 	assert.Equal(t, map[string]string{
-		"an_int":       "42",
-		"a_string":     "23",
-		"some_bytes":   "\x01a",
+		"an_int":     "42",
+		"a_string":   "23",
+		"some_bytes": "\x01a",
 	}, fields)
 }
 

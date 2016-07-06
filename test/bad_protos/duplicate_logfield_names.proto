@@ -1,0 +1,10 @@
+syntax = "proto3";
+package logfields_test;
+option go_package = "logfieldstest";
+
+import "github.com/improbable-io/go-proto-logfields/logfields.proto";
+
+message DuplicateLogFieldsTest {
+    string string_1 = 1 [(improbable.logfield) = {name: "text"}];
+    string string_2 = 2 [(improbable.logfield) = {name: "text"}];
+}

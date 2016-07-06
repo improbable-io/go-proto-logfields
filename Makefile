@@ -35,5 +35,17 @@ regenerate_test: install
 	  --gologfields_out=gogoimport=false:. \
 	  test/*.proto
 
-test: regenerate_test
+regenerate_test_gogo: install
+	protoc \
+	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
+	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src/github.com/gogo/protobuf/protobuf \
+	  --proto_path=. \
+	  --gogo_out=. \
+	  --gologfields_out=gogoimport=true:. \
+	  test/*.proto
+
+test:
+	$(MAKE) regenerate_test
+	go test -v ./...
+	$(MAKE) regenerate_test_gogo
 	go test -v ./...

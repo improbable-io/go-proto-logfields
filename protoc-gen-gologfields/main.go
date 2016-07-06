@@ -29,7 +29,7 @@ func main() {
 		gen.Fail("no files to generate")
 	}
 
-	useGogo := true
+	useGogo := false
 	for _, kv := range strings.Split(gen.Request.GetParameter(), ",") {
 		a := strings.SplitN(kv, "=", 2)
 		if len(a) == 2 && a[0] == "gogoimport" {

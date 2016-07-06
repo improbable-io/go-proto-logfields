@@ -267,6 +267,7 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 		p.P(`hasInner = hasInner || len(`, oneOfVar, `) > 0`)
 	}
 
+	// Generate code for embedded messages
 	for _, field := range msg.GetField() {
 		if field.OneofIndex != nil {
 			continue
@@ -274,10 +275,9 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 			continue
 		} else if field.IsRepeated() {
 			continue
-		} else {
-			p.P(p.GetFieldVar(msg, field) + ` := this.` + p.GetFieldName(msg, field) + `.LogFields()`)
 		}
-		// Keep track of whether any logfields were generated at runtime.
+		p.P(p.GetFieldVar(msg, field) + ` := this.` + p.GetFieldName(msg, field) + `.LogFields()`)
+		// Keep track of whether any log fields were generated at runtime.
 		p.P(`hasInner = hasInner || len(` + p.GetFieldVar(msg, field) + `) > 0`)
 	}
 	p.P(`if !hasInner {`)

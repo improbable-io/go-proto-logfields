@@ -1,5 +1,15 @@
 // Copyright (c) Improbable Worlds Ltd, All Rights Reserved
 
+// We generate a LogFields() method which returns a map. This method does the
+// following for each field tagged with the logField annotation:
+// 
+// * Primitive fields - adds the name and value of the filed to the map
+// * Messages - Calls LogFields on the message and merges the returned map into the current map 
+// 
+// Oneofs containing logfields and embedded messages are supported.
+// Duplicate names in the same message are reported as an error by the generator.
+// Repeated fields, and therefore maps, are not supported, and are ignored by the generator.
+
 package logfields
 
 import (

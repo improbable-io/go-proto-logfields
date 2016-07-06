@@ -164,6 +164,36 @@ func (p *plugin) generateFieldsLiteralReturn(msg *generator.Descriptor, proto3 b
 	p.P(`}`)
 }
 
+func (p *plugin) generateOneOfSwitch(msg *generator.Descriptor, oneofProxy *descriptor.FieldDescriptorProto) string {
+	oneOfVar := p.GetFieldVar(msg, oneofProxy)
+	p.P(`var `, oneOfVar, ` map[string]string`)
+	p.P(`switch f := this.`, p.GetFieldName(msg, oneofProxy), `.(type) {`)
+	for _, field := range msg.GetField() {
+		if field.OneofIndex == nil || field.GetOneofIndex() != oneofProxy.GetOneofIndex() {
+			continue
+		}
+		// Oneof fields that can't generate log fields will use the default clause.
+		if !field.IsMessage() && !p.hasLogField(field) {
+			continue
+		}
+		p.P(`case *`, p.OneOfTypeName(msg, field), `:`)
+		p.In()
+		if field.IsMessage() {
+			p.P(oneOfVar, ` = f.`, p.GetOneOfFieldName(msg, field), `.LogFields()`)
+		} else {
+			logName := p.getLogFieldIfAny(field).Name
+			p.P(oneOfVar, ` = map[string]string{`, strconv.Quote(logName), `: `, p.getFmtExpr(`f.`+p.GetOneOfFieldName(msg, field), field), `}`)
+		}
+		p.Out()
+	}
+	p.P(`default:`)
+	p.In()
+	p.P(oneOfVar, ` = map[string]string{}`)
+	p.Out()
+	p.P(`}`)
+	return oneOfVar
+}
+
 func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 	p.P(`func (this *`, generator.CamelCaseSlice(msg.TypeName()), `) LogFields() map[string]string {`)
 	p.In()
@@ -211,7 +241,7 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 
 	p.P(`// Gather fields from oneofs and child messages.`)
 	p.P(`var hasInner bool`)
-	loggedOneOfs := map[int]struct{}{}
+	loggedOneOfs := map[int]string{}
 	// Generate code to build a log field map for each oenof.
 	for oneOfIndex, _ := range msg.GetOneofDecl() {
 		// Determine whether we can skip the oneof entirely.
@@ -228,39 +258,12 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 		}
 		if loggedOneOfField == nil {
 			continue
-		} else {
-			loggedOneOfs[oneOfIndex] = struct{}{}
 		}
 
 		// Generate a type-switch.
-		oneOfVar := p.GetFieldVar(msg, loggedOneOfField)
-		p.P(`var `, oneOfVar, ` map[string]string`)
-		p.P(`switch f := this.`, p.GetFieldName(msg, loggedOneOfField), `.(type) {`)
-		for _, field := range msg.GetField() {
-			if field.OneofIndex == nil || int(field.GetOneofIndex()) != oneOfIndex {
-				continue
-			}
-			// Oneof fields that can't generate log fields will use the default clause.
-			if !field.IsMessage() && !p.hasLogField(field) {
-				continue
-			}
-			p.P(`case *`, p.OneOfTypeName(msg, field), `:`)
-			p.In()
-			if field.IsMessage() {
-				p.P(oneOfVar, ` = f.`, p.GetOneOfFieldName(msg, field), `.LogFields()`)
-			} else {
-				logName := p.getLogFieldIfAny(field).Name
-				p.P(oneOfVar, ` = map[string]string{`, strconv.Quote(logName), `: `, p.getFmtExpr(`f.` + p.GetOneOfFieldName(msg, field), field), `}`)
-			}
-			p.Out()
-		}
-		p.P(`default:`)
-		p.In()
-		p.P(oneOfVar, ` = map[string]string{}`)
-		p.Out()
-		p.P(`}`)
-
-		// Keep track of whether any logfields were generated at runtime.
+		oneOfVar := p.generateOneOfSwitch(msg, loggedOneOfField)
+		loggedOneOfs[oneOfIndex] = oneOfVar
+		// Keep track of whether any log fields were generated at runtime.
 		p.P(`hasInner = hasInner || len(`, oneOfVar, `) > 0`)
 	}
 
@@ -294,16 +297,20 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 			continue
 		}
 		if field.OneofIndex != nil {
-			if _, logged := loggedOneOfs[int(field.GetOneofIndex())]; !logged {
+			oneOfVar, logged := loggedOneOfs[int(field.GetOneofIndex())]
+			if !logged {
 				continue
 			}
 			if _, visited := visitedOneOfs[int(field.GetOneofIndex())]; visited {
 				continue
 			}
 			visitedOneOfs[int(field.GetOneofIndex())] = struct{}{}
-		}
-
-		if field.IsMessage() || field.OneofIndex != nil {
+			p.P(`for k, v := range ` + oneOfVar + ` {`)
+			p.In()
+			p.P(`res[k] = v`)
+			p.Out()
+			p.P(`}`)
+		} else if field.IsMessage() {
 			p.P(`for k, v := range ` + p.GetFieldVar(msg, field) + ` {`)
 			p.In()
 			p.P(`res[k] = v`)

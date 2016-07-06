@@ -24,10 +24,6 @@ import (
 	"github.com/gogo/protobuf/vanity"
 )
 
-func init() {
-	generator.RegisterPlugin(NewPlugin(true))
-}
-
 type plugin struct {
 	*generator.Generator
 	generator.PluginImports

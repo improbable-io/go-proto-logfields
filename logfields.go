@@ -164,6 +164,20 @@ func (p *plugin) generateFieldsLiteralReturn(msg *generator.Descriptor, proto3 b
 	p.P(`}`)
 }
 
+func findLoggedOneofField(msg *generator.Descriptor, oneofIndex int) *descriptor.FieldDescriptorProto {
+	var loggedOneOfField *descriptor.FieldDescriptorProto
+	for _, field := range msg.GetField() {
+		if field.OneofIndex == nil || int(field.GetOneofIndex()) != oneofIndex {
+			continue
+		}
+		if field.IsMessage() || hasLogField(field) {
+			loggedOneOfField = field
+			break
+		}
+	}
+	return loggedOneOfField
+}
+
 func (p *plugin) generateOneOfSwitch(msg *generator.Descriptor, oneofProxy *descriptor.FieldDescriptorProto) string {
 	oneOfVar := p.GetFieldVar(msg, oneofProxy)
 	p.P(`var `, oneOfVar, ` map[string]string`)
@@ -244,19 +258,10 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 	loggedOneOfs := map[int]string{}
 	// Generate code to build a log field map for each oenof.
 	for oneOfIndex, _ := range msg.GetOneofDecl() {
-		// Determine whether we can skip the oneof entirely.
 		// loggedOneOfField is used later as a proxy for the oneof
-		var loggedOneOfField *descriptor.FieldDescriptorProto
-		for _, field := range msg.GetField() {
-			if field.OneofIndex == nil || int(field.GetOneofIndex()) != oneOfIndex {
-				continue
-			}
-			if field.IsMessage() || hasLogField(field) {
-				loggedOneOfField = field
-				break
-			}
-		}
+		loggedOneOfField := findLoggedOneofField(msg, oneOfIndex)
 		if loggedOneOfField == nil {
+			// We can skip generating code for the oneof.
 			continue
 		}
 

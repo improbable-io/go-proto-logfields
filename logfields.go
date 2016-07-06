@@ -45,7 +45,7 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 	for _, msg := range file.Messages() {
 		logNames := map[string]struct{}{}
 		for _, field := range msg.GetField() {
-			logField := p.getLogFieldIfAny(field)
+			logField := getLogFieldIfAny(field)
 			if logField == nil {
 				continue
 			}
@@ -70,7 +70,7 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 	}
 }
 
-func (p *plugin) getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *LogField {
+func getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *LogField {
 	opts := field.GetOptions()
 	if opts == nil {
 		return nil
@@ -86,8 +86,8 @@ func (p *plugin) getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *LogFi
 	return logField
 }
 
-func (p *plugin) hasLogField(field *descriptor.FieldDescriptorProto) bool {
-	return p.getLogFieldIfAny(field) != nil
+func hasLogField(field *descriptor.FieldDescriptorProto) bool {
+	return getLogFieldIfAny(field) != nil
 }
 
 // Convert a UpperCamelCase to lowerCamelCase.
@@ -152,7 +152,7 @@ func (p *plugin) generateFieldsLiteralReturn(msg *generator.Descriptor, proto3 b
 		if field.OneofIndex != nil {
 			continue
 		}
-		logField := p.getLogFieldIfAny(field)
+		logField := getLogFieldIfAny(field)
 		if logField == nil {
 			continue
 		}
@@ -173,7 +173,7 @@ func (p *plugin) generateOneOfSwitch(msg *generator.Descriptor, oneofProxy *desc
 			continue
 		}
 		// Oneof fields that can't generate log fields will use the default clause.
-		if !field.IsMessage() && !p.hasLogField(field) {
+		if !field.IsMessage() && !hasLogField(field) {
 			continue
 		}
 		p.P(`case *`, p.OneOfTypeName(msg, field), `:`)
@@ -181,7 +181,7 @@ func (p *plugin) generateOneOfSwitch(msg *generator.Descriptor, oneofProxy *desc
 		if field.IsMessage() {
 			p.P(oneOfVar, ` = f.`, p.GetOneOfFieldName(msg, field), `.LogFields()`)
 		} else {
-			logName := p.getLogFieldIfAny(field).Name
+			logName := getLogFieldIfAny(field).Name
 			p.P(oneOfVar, ` = map[string]string{`, strconv.Quote(logName), `: `, p.getFmtExpr(`f.`+p.GetOneOfFieldName(msg, field), field), `}`)
 		}
 		p.Out()
@@ -203,7 +203,7 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 		if field.IsRepeated() {
 			continue
 		}
-		if field.IsMessage() || p.hasLogField(field) {
+		if field.IsMessage() || hasLogField(field) {
 			needsBody = true
 			break
 		}
@@ -251,7 +251,7 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 			if field.OneofIndex == nil || int(field.GetOneofIndex()) != oneOfIndex {
 				continue
 			}
-			if field.IsMessage() || p.hasLogField(field) {
+			if field.IsMessage() || hasLogField(field) {
 				loggedOneOfField = field
 				break
 			}
@@ -317,7 +317,7 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 			p.Out()
 			p.P(`}`)
 		} else {
-			logField := p.getLogFieldIfAny(field)
+			logField := getLogFieldIfAny(field)
 			if logField == nil {
 				continue
 			}

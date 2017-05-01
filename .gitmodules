@@ -7,3 +7,6 @@
 [submodule "vendor/github.com/stretchr/testify"]
 	path = vendor/github.com/stretchr/testify
 	url = https://github.com/stretchr/testify
+[submodule "vendor/github.com/google/protobuf"]
+	path = vendor/github.com/google/protobuf
+	url = https://github.com/google/protobuf

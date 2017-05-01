@@ -6,7 +6,6 @@ import "github.com/improbable-io/go-proto-logfields/logfields.proto";
 
 message Note {
   string author = 1 [(improbable.logfield) = {name: "author"}];
-  repeated string text = 2 [(improbable.logfield) = {name: "note"}];
 }
 
 message Request {

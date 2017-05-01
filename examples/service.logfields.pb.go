@@ -25,83 +25,61 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-func (this *Note) textLogFields() []string {
-	var vals []string
-	for _, val := range this.Text {
-		vals = append(vals, val)
-	}
-	return vals
-}
-func (this *Note) LogFields() map[string][]string {
+func (this *Note) LogFields() map[string]string {
 	// Handle being called on nil message.
 	if this == nil {
-		return map[string][]string{}
+		return map[string]string{}
 	}
 	// Generate fields for this message.
-	return map[string][]string{
-		"author": []string{this.Author},
-		"note":   this.textLogFields(),
+	return map[string]string{
+		"author": this.Author,
 	}
 }
 
-func (this *Request) LogFields() map[string][]string {
+func (this *Request) LogFields() map[string]string {
 	// Handle being called on nil message.
 	if this == nil {
-		return map[string][]string{}
+		return map[string]string{}
 	}
-	// Gather fields from child messages.
+	// Gather fields from oneofs and child messages.
 	var hasInner bool
 	noteFields := this.Note.LogFields()
 	hasInner = hasInner || len(noteFields) > 0
 	if !hasInner {
-		// If no inner messages added any fields, the fields map is complete.
-		return map[string][]string{
-			"path": []string{this.Path},
+		// If no inner messages added any fields, avoid merging maps.
+		return map[string]string{
+			"path": this.Path,
 		}
 	}
 	// Merge all the field maps.
-	res := map[string][]string{}
-	res["path"] = append(res["path"], this.Path)
+	res := map[string]string{}
+	res["path"] = this.Path
 	for k, v := range noteFields {
-		res[k] = append(res[k], v...)
+		res[k] = v
 	}
 	return res
 }
 
-func (this *Response) notesLogFields() map[string][]string {
-	fields := map[string][]string{}
-	for _, msg := range this.Notes {
-		for k, v := range msg.LogFields() {
-			fields[k] = append(fields[k], v...)
-		}
-	}
-	return fields
-}
-func (this *Response) LogFields() map[string][]string {
+func (this *Response) LogFields() map[string]string {
 	// Handle being called on nil message.
 	if this == nil {
-		return map[string][]string{}
+		return map[string]string{}
 	}
-	// Gather fields from child messages.
+	// Gather fields from oneofs and child messages.
 	var hasInner bool
 	changedNoteFields := this.ChangedNote.LogFields()
 	hasInner = hasInner || len(changedNoteFields) > 0
-	notesFields := this.notesLogFields()
-	hasInner = hasInner || len(notesFields) > 0
 	if !hasInner {
-		// If no inner messages added any fields, the fields map is complete.
-		return map[string][]string{
-			"did_it": []string{fmt.Sprintf("%v", this.DidStuff)},
+		// If no inner messages added any fields, avoid merging maps.
+		return map[string]string{
+			"did_it": fmt.Sprintf("%v", this.DidStuff),
 		}
 	}
 	// Merge all the field maps.
-	res := map[string][]string{}
-	res["did_it"] = append(res["did_it"], fmt.Sprintf("%v", this.DidStuff))
+	res := map[string]string{}
+	res["did_it"] = fmt.Sprintf("%v", this.DidStuff)
 	for k, v := range changedNoteFields {
-		res[k] = append(res[k], v...)
-	}
-	for k, v := range notesFields {
-		res[k] = append(res[k], v...)
+		res[k] = v
 	}
 	return res
 }

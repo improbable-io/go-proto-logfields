@@ -12,7 +12,7 @@ install: regenerate
 regenerate:
 	protoc \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
-	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src/github.com/gogo/protobuf/protobuf \
+	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
 	  --proto_path=. \
 	  --gogo_out=Mgoogle/protobuf/descriptor.proto=github.com/gogo/protobuf/protoc-gen-gogo/descriptor:. \
 	  logfields.proto
@@ -20,7 +20,7 @@ regenerate:
 regenerate_examples: install
 	protoc \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
-	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src/github.com/google/protobuf/src \
+	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
 	  --proto_path=. \
 	  --go_out=. \
 	  --gologfields_out=gogoimport=false:. \
@@ -29,7 +29,7 @@ regenerate_examples: install
 regenerate_test: install
 	protoc \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
-	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src/github.com/google/protobuf/src \
+	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
 	  --proto_path=. \
 	  --go_out=. \
 	  --gologfields_out=gogoimport=false:. \
@@ -38,14 +38,15 @@ regenerate_test: install
 regenerate_test_gogo: install
 	protoc \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
-	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src/github.com/gogo/protobuf/protobuf \
+	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
 	  --proto_path=. \
 	  --gogo_out=. \
 	  --gologfields_out=gogoimport=true:. \
 	  test/*.proto
 
 test:
+	go test -v .
 	$(MAKE) regenerate_test
-	go test -v ./...
+	go test -v ./test
 	$(MAKE) regenerate_test_gogo
-	go test -v ./...
+	go test -v ./test

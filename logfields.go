@@ -73,6 +73,8 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 		// Split the generated code into sections grouped by the outermost-level message being processed
 		p.P()
 		p.generateLogsExtractor(msg, gogoproto.IsProto3(file.FileDescriptorProto))
+		p.P()
+		p.generateExtractRequestFields(msg, gogoproto.IsProto3(file.FileDescriptorProto))
 	}
 }
 
@@ -338,6 +340,70 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 	}
 
 	p.P(`return res`)
+	p.Out()
+	p.P(`}`)
+}
+
+func (p *plugin) generateExtractRequestFields(msg *generator.Descriptor, proto3 bool) {
+	p.P(`func (this *`, generator.CamelCaseSlice(msg.TypeName()), `) ExtractRequestFields(dst map[string]interface{}) {`)
+	p.In()
+
+	var needsBody bool
+	for _, field := range msg.GetField() {
+		if field.IsRepeated() {
+			continue
+		}
+		if field.IsMessage() || hasLogField(field) {
+			needsBody = true
+			break
+		}
+	}
+	if !needsBody {
+		// If the message has nothing that might generate log fields, we can generate an empty method
+		p.Out()
+		p.P(`}`)
+		return
+	}
+
+	p.P(`// Handle being called on nil message.`)
+	p.P(`if this == nil {`)
+	p.In()
+	p.P(`return`)
+	p.Out()
+	p.P(`}`)
+	p.P()
+
+	// Generate code for embedded messages
+	for _, field := range msg.GetField() {
+		if field.IsRepeated() {
+			continue
+		}
+		if !(field.IsMessage() || hasLogField(field)) {
+			continue
+		}
+		var fieldName string
+		if proto3 {
+			fieldName = `this.` + p.GetFieldName(msg, field)
+		} else {
+			fieldName = `this.Get` + p.GetFieldName(msg, field) + `()`
+		}
+		if field.OneofIndex != nil {
+			p.P(`if f, ok := `, fieldName, `.(*`, p.OneOfTypeName(msg, field), `); ok {`)
+			p.In()
+			fieldName = "f." + p.GetOneOfFieldName(msg, field)
+		}
+		if field.IsMessage() {
+			p.P(fieldName, `.ExtractRequestFields(dst)`)
+		} else {
+			logField := getLogFieldIfAny(field)
+			p.P(`dst[`, strconv.Quote(logField.Name), `] = `, fieldName)
+		}
+		if field.OneofIndex != nil {
+			p.Out()
+			p.P(`}`)
+		}
+	}
+
 	p.Out()
 	p.P(`}`)
 }

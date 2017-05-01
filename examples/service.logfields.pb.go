@@ -36,6 +36,15 @@ func (this *Note) LogFields() map[string]string {
 	}
 }
 
+func (this *Note) ExtractRequestFields(dst map[string]interface{}) {
+	// Handle being called on nil message.
+	if this == nil {
+		return
+	}
+
+	dst["author"] = this.Author
+}
+
 func (this *Request) LogFields() map[string]string {
 	// Handle being called on nil message.
 	if this == nil {
@@ -60,6 +69,16 @@ func (this *Request) LogFields() map[string]string {
 	return res
 }
 
+func (this *Request) ExtractRequestFields(dst map[string]interface{}) {
+	// Handle being called on nil message.
+	if this == nil {
+		return
+	}
+
+	dst["path"] = this.Path
+	this.Note.ExtractRequestFields(dst)
+}
+
 func (this *Response) LogFields() map[string]string {
 	// Handle being called on nil message.
 	if this == nil {
@@ -82,4 +101,14 @@ func (this *Response) LogFields() map[string]string {
 		res[k] = v
 	}
 	return res
+}
+
+func (this *Response) ExtractRequestFields(dst map[string]interface{}) {
+	// Handle being called on nil message.
+	if this == nil {
+		return
+	}
+
+	dst["did_it"] = this.DidStuff
+	this.ChangedNote.ExtractRequestFields(dst)
 }

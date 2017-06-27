@@ -15,7 +15,7 @@ regenerate:
 	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
 	  --proto_path=. \
 	  --gogo_out=Mgoogle/protobuf/descriptor.proto=github.com/gogo/protobuf/protoc-gen-gogo/descriptor:. \
-	  logfields.proto
+	  src/github.com/improbable-io/go-proto-logfields/logfields.proto
 
 regenerate_examples: install
 	protoc \

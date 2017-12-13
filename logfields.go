@@ -28,6 +28,7 @@ type plugin struct {
 	*generator.Generator
 	generator.PluginImports
 	useGogo bool
+	selfImport generator.Single
 }
 
 func NewPlugin(useGogo bool) generator.Plugin {
@@ -44,6 +45,9 @@ func (p *plugin) Init(g *generator.Generator) {
 }
 
 func (p *plugin) Generate(file *generator.FileDescriptor) {
+	p.PluginImports = generator.NewPluginImports(p.Generator)
+	p.selfImport = p.NewImport("github.com/improbable-io/go-proto-logfields")
+
 	if !p.useGogo {
 		vanity.TurnOffGogoImport(file.FileDescriptorProto)
 	}
@@ -201,7 +205,7 @@ func (p *plugin) generateOneOfSwitch(msg *generator.Descriptor, oneofProxy *desc
 		p.P(`case *`, p.OneOfTypeName(msg, field), `:`)
 		p.In()
 		if field.IsMessage() {
-			p.P(oneOfVar, ` = f.`, p.GetOneOfFieldName(msg, field), `.LogFields()`)
+			p.P(oneOfVar, ` = `, p.selfImport.Use(), `.ExtractLogFieldsFromMessage(f.`, p.GetOneOfFieldName(msg, field), `)`)
 		} else {
 			logName := getLogFieldIfAny(field).Name
 			p.P(oneOfVar, ` = map[string]string{`, strconv.Quote(logName), `: `, p.getFmtExpr(`f.`+p.GetOneOfFieldName(msg, field), field), `}`)
@@ -289,7 +293,7 @@ func (p *plugin) generateLogsExtractor(msg *generator.Descriptor, proto3 bool) {
 		} else if field.IsRepeated() {
 			continue
 		}
-		p.P(p.GetFieldVar(msg, field) + ` := this.` + p.GetFieldName(msg, field) + `.LogFields()`)
+		p.P(p.GetFieldVar(msg, field), ` := `, p.selfImport.Use(), `.ExtractLogFieldsFromMessage(this.`+p.GetFieldName(msg, field)+`)`)
 		// Keep track of whether any log fields were generated at runtime.
 		p.P(`hasInner = hasInner || len(` + p.GetFieldVar(msg, field) + `) > 0`)
 	}
@@ -393,7 +397,7 @@ func (p *plugin) generateExtractRequestFields(msg *generator.Descriptor, proto3 
 			fieldName = "f." + p.GetOneOfFieldName(msg, field)
 		}
 		if field.IsMessage() {
-			p.P(fieldName, `.ExtractRequestFields(dst)`)
+			p.P(p.selfImport.Use(), `.ExtractRequestFieldsFromMessage(`, fieldName, `, dst)`)
 		} else {
 			logField := getLogFieldIfAny(field)
 			p.P(`dst[`, strconv.Quote(logField.Name), `] = `, fieldName)

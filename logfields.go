@@ -22,7 +22,6 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	"github.com/gogo/protobuf/vanity"
-	pb_logfields "github.com/improbable-io/go-proto-logfields/proto/github.com/improbable-io/go-proto-logfields"
 )
 
 type plugin struct {
@@ -83,16 +82,16 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 	}
 }
 
-func getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *pb_logfields.LogField {
+func getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *LogField {
 	opts := field.GetOptions()
 	if opts == nil {
 		return nil
 	}
-	e, err := proto.GetExtension(opts, pb_logfields.E_Logfield)
+	e, err := proto.GetExtension(opts, E_Logfield)
 	if err != nil {
 		return nil
 	}
-	logField := e.(*pb_logfields.LogField)
+	logField := e.(*LogField)
 	if logField != nil && logField.Name == "" {
 		logField = nil
 	}

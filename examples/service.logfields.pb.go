@@ -27,10 +27,23 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 func (this *Note) LogFields() map[string]string {
-	return map[string]string{}
+	// Handle being called on nil message.
+	if this == nil {
+		return map[string]string{}
+	}
+	// Generate fields for this message.
+	return map[string]string{
+		"author": this.Author,
+	}
 }
 
 func (this *Note) ExtractRequestFields(dst map[string]interface{}) {
+	// Handle being called on nil message.
+	if this == nil {
+		return
+	}
+
+	dst["author"] = this.Author
 }
 
 func (this *Request) LogFields() map[string]string {
@@ -44,10 +57,13 @@ func (this *Request) LogFields() map[string]string {
 	hasInner = hasInner || len(noteFields) > 0
 	if !hasInner {
 		// If no inner messages added any fields, avoid merging maps.
-		return map[string]string{}
+		return map[string]string{
+			"path": this.Path,
+		}
 	}
 	// Merge all the field maps.
 	res := map[string]string{}
+	res["path"] = this.Path
 	for k, v := range noteFields {
 		res[k] = v
 	}
@@ -60,6 +76,7 @@ func (this *Request) ExtractRequestFields(dst map[string]interface{}) {
 		return
 	}
 
+	dst["path"] = this.Path
 	github_com_improbable_io_go_proto_logfields.ExtractRequestFieldsFromMessage(this.Note, dst)
 }
 
@@ -74,10 +91,13 @@ func (this *Response) LogFields() map[string]string {
 	hasInner = hasInner || len(changedNoteFields) > 0
 	if !hasInner {
 		// If no inner messages added any fields, avoid merging maps.
-		return map[string]string{}
+		return map[string]string{
+			"did_it": fmt.Sprintf("%v", this.DidStuff),
+		}
 	}
 	// Merge all the field maps.
 	res := map[string]string{}
+	res["did_it"] = fmt.Sprintf("%v", this.DidStuff)
 	for k, v := range changedNoteFields {
 		res[k] = v
 	}
@@ -90,5 +110,6 @@ func (this *Response) ExtractRequestFields(dst map[string]interface{}) {
 		return
 	}
 
+	dst["did_it"] = this.DidStuff
 	github_com_improbable_io_go_proto_logfields.ExtractRequestFieldsFromMessage(this.ChangedNote, dst)
 }

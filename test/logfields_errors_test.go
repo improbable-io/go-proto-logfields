@@ -25,7 +25,7 @@ func buildProtoPathArgs(protoFile string) []string {
 			continue
 		}
 		args = append(args, fmt.Sprintf("--proto_path=%v/src", path))
-		args = append(args, fmt.Sprintf("--proto_path=%v/src/github.com/improbable-io/go-proto-logfields/proto", path))
+		args = append(args, fmt.Sprintf("--proto_path=%v/src/github.com/improbable-io/go-proto-logfields/", path))
 		args = append(args, fmt.Sprintf("--proto_path=%v/src/github.com/improbable-io/go-proto-logfields/vendor/github.com/gogo/protobuf/protobuf", path))
 	}
 	args = append(args, fmt.Sprintf("--proto_path=%v", path.Dir(protoFile)))

@@ -15,13 +15,13 @@ regenerate:
 	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
 	  --proto_path=. \
 	  --gogo_out=Mgoogle/protobuf/descriptor.proto=github.com/gogo/protobuf/protoc-gen-gogo/descriptor:. \
-	  proto/github.com/improbable-io/go-proto-logfields/logfields.proto
+	  logfields.proto
 
 regenerate_examples: install
 	protoc \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
 	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
-	  --proto_path=./proto \
+	  --proto_path=. \
 	  --proto_path=./examples \
 	  --go_out=./examples \
 	  --gologfields_out=gogoimport=false:./examples \
@@ -31,7 +31,7 @@ regenerate_test: install
 	protoc \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
 	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
-	  --proto_path=./proto \
+	  --proto_path=./ \
 	  --proto_path=./test \
 	  --go_out=./test \
 	  --gologfields_out=gogoimport=false:./test \
@@ -41,7 +41,7 @@ regenerate_test_gogo: install
 	protoc \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
 	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
-	  --proto_path=./proto \
+	  --proto_path=./ \
 	  --proto_path=./test \
 	  --gogo_out=./test \
 	  --gologfields_out=gogoimport=true:./test \

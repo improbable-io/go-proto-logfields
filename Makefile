@@ -22,26 +22,29 @@ regenerate_examples: install
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
 	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
 	  --proto_path=. \
-	  --go_out=. \
-	  --gologfields_out=gogoimport=false:. \
+	  --proto_path=./examples \
+	  --go_out=./examples \
+	  --gologfields_out=gogoimport=false:./examples \
 	  examples/*.proto
 
 regenerate_test: install
 	protoc \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
 	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
-	  --proto_path=. \
-	  --go_out=. \
-	  --gologfields_out=gogoimport=false:. \
+	  --proto_path=./ \
+	  --proto_path=./test \
+	  --go_out=./test \
+	  --gologfields_out=gogoimport=false:./test \
 	  test/*.proto
 
 regenerate_test_gogo: install
 	protoc \
 	  --proto_path=$${GOPATH//:/\/src --proto_path=}/src \
 	  --proto_path=./vendor/github.com/gogo/protobuf/protobuf \
-	  --proto_path=. \
-	  --gogo_out=. \
-	  --gologfields_out=gogoimport=true:. \
+	  --proto_path=./ \
+	  --proto_path=./test \
+	  --gogo_out=./test \
+	  --gologfields_out=gogoimport=true:./test \
 	  test/*.proto
 
 test:

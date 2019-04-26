@@ -4,3 +4,10 @@ filegroup(
     name = "proto",
     srcs = ["bazel-protos/github.com/improbable-io/go-proto-logfields/logfields.proto"],
 )
+
+proto_library(
+    name = "logfield_proto",
+    srcs = [
+       ":proto",
+    ],
+)

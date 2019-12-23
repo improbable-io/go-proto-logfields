@@ -1,0 +1,32 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+go_test(
+    name = "go_default_test",
+    size = "small",
+    srcs = ["logfields_errors_test.go"],
+    args = [
+        "-descriptor_path='$(rootpaths @com_google_protobuf//:well_known_protos)'",
+        "-duplicate_names_path=$(rootpath :duplicate_logfield_names.proto)",
+        "-logfield_path=$(rootpaths //:logfields)",
+        "-protoc-gen-go=$(rootpath @com_github_golang_protobuf//protoc-gen-go:protoc-gen-go)",
+        "-protoc-gen-gologfields=$(rootpath //protoc-gen-gologfields:protoc-gen-gologfields)",
+        "-protoc=$(rootpath @com_google_protobuf//:protoc)",
+        "-repeated_path=$(rootpath :repeated_logfield.proto)",
+    ],
+    data = [
+        "//:logfields",
+        "//protoc-gen-gologfields",
+        ":duplicate_logfield_names.proto",
+        ":repeated_logfield.proto",
+        "@com_github_golang_protobuf//protoc-gen-go",
+        "@com_google_protobuf//:protoc",
+        "@com_google_protobuf//:well_known_protos",
+    ],
+    rundir = ".",
+    deps = [
+        "@com_github_stretchr_testify//require:go_default_library",
+    ],
+)
+

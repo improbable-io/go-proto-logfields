@@ -1,6 +1,67 @@
-package(default_visibility = ["//visibility:public"])
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@io_bazel_rules_go//proto:compiler.bzl", "go_proto_compiler")
+load("@rules_proto//proto:defs.bzl", "proto_library")
 
 filegroup(
-    name = "proto",
-    srcs = ["bazel-protos/github.com/improbable-io/go-proto-logfields/logfields.proto"],
+    name = "logfields",
+    srcs = ["logfields.proto"],
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
+    name = "logfields_proto",
+    srcs = [":logfields"],
+    import_prefix = "github.com/improbable-io/go-proto-logfields",
+    deps = [
+        "@com_google_protobuf//:descriptor_proto",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+go_proto_compiler(
+    name = "gogo_proto_logfields",
+    plugin = "//protoc-gen-gologfields",
+    deps = [
+        "//:go_default_library",
+        "@com_github_gogo_protobuf//protoc-gen-gogo/descriptor:go_default_library",
+    ],
+    options = ["gogoimport=true"],
+    suffix = ".logfields.pb.go",
+    valid_archive = False,
+    visibility = ["//visibility:public"],
+)
+
+go_proto_compiler(
+    name = "go_proto_logfields",
+    plugin = "//protoc-gen-gologfields",
+    deps = [
+        "//:go_default_library",
+        "@com_github_golang_protobuf//protoc-gen-go/descriptor:go_default_library",
+    ],
+    options = ["gogoimport=false"],
+    suffix = ".logfields.pb.go",
+    valid_archive = False,
+    visibility = ["//visibility:public"],
+)
+
+go_proto_library(
+    name = "_logfields",
+    importpath = "github.com/improbable-io/go-proto-logfields",
+    proto = ":logfields_proto",
+    compilers = [
+        "@io_bazel_rules_go//proto:gogo_proto",
+    ],
+    deps = [
+        "@com_github_gogo_protobuf//protoc-gen-gogo/descriptor:go_default_library",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+go_library(
+    name = "go_default_library",
+    importpath = "github.com/improbable-io/go-proto-logfields",
+    srcs = ["extract.go"],
+    embed = [":_logfields"],
+    visibility = ["//visibility:public"],
 )

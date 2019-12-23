@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    importpath = "github.com/improbable-io/go-proto-logfields/protoc-gen-gologfields",
+    srcs = ["main.go"],
+    deps = [
+        "//plugin:go_default_library",
+        "@com_github_gogo_protobuf//proto:go_default_library",
+        "@com_github_gogo_protobuf//protoc-gen-gogo/generator:go_default_library",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "protoc-gen-gologfields",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

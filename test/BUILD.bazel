@@ -1,0 +1,89 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "test_proto2",
+    srcs = ["test_proto2.proto"],
+    deps = [
+        "//:logfields_proto",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+proto_library(
+    name = "test_proto3",
+    srcs = ["test_proto3.proto"],
+    deps = [
+        "//:logfields_proto",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+go_proto_library(
+    name = "proto2_gogo",
+    importpath = "dummy",
+    proto = ":test_proto2",
+    compilers = [
+        "//:gogo_proto_logfields",
+        "@io_bazel_rules_go//proto:gogo_proto",
+    ],
+)
+
+go_proto_library(
+    name = "proto2_golang",
+    importpath = "dummy",
+    proto = ":test_proto2",
+    compilers = [
+        "//:go_proto_logfields",
+        "@io_bazel_rules_go//proto:go_proto",
+    ],
+)
+
+go_proto_library(
+    name = "proto3_gogo",
+    importpath = "dummy",
+    proto = ":test_proto3",
+    compilers = [
+        "//:gogo_proto_logfields",
+        "@io_bazel_rules_go//proto:gogo_proto",
+    ],
+)
+
+go_proto_library(
+    name = "proto3_golang",
+    importpath = "dummy",
+    proto = ":test_proto3",
+    compilers = [
+        "//:go_proto_logfields",
+        "@io_bazel_rules_go//proto:go_proto",
+    ],
+)
+
+go_test(
+    name = "gogo_test",
+    size = "small",
+    srcs = ["gogo/logfields_pb_test.go"],
+    embed = [
+        ":proto2_gogo",
+        ":proto3_gogo",
+    ],
+    rundir = ".",
+    deps = [
+        "@com_github_stretchr_testify//assert:go_default_library",
+    ],
+)
+
+go_test(
+    name = "golang_test",
+    size = "small",
+    srcs = ["golang/logfields_pb_test.go"],
+    embed = [
+        ":proto2_golang",
+        ":proto3_golang",
+    ],
+    rundir = ".",
+    deps = [
+        "@com_github_stretchr_testify//assert:go_default_library",
+    ],
+)

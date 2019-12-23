@@ -1,3 +1,8 @@
+# Build artefacts and IDE files.
+.vscode
+bazel-*
+deps
+
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
 *.a

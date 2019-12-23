@@ -10,7 +10,7 @@
 // Duplicate names in the same message are reported as an error by the generator.
 // Repeated fields, and therefore maps, are not supported, and are ignored by the generator.
 
-package logfields
+package plugin
 
 import (
 	"fmt"
@@ -22,6 +22,8 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	"github.com/gogo/protobuf/vanity"
+
+	"github.com/improbable-io/go-proto-logfields"
 )
 
 type plugin struct {
@@ -82,16 +84,16 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 	}
 }
 
-func getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *LogField {
+func getLogFieldIfAny(field *descriptor.FieldDescriptorProto) *logfields.LogField {
 	opts := field.GetOptions()
 	if opts == nil {
 		return nil
 	}
-	e, err := proto.GetExtension(opts, E_Logfield)
+	e, err := proto.GetExtension(opts, logfields.E_Logfield)
 	if err != nil {
 		return nil
 	}
-	logField := e.(*LogField)
+	logField := e.(*logfields.LogField)
 	if logField != nil && logField.Name == "" {
 		logField = nil
 	}

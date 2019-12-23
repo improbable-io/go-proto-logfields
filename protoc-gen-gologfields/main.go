@@ -10,7 +10,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
-	"github.com/improbable-io/go-proto-logfields"
+
+	"github.com/improbable-io/go-proto-logfields/plugin"
 )
 
 func main() {
@@ -45,7 +46,7 @@ func main() {
 	gen.WrapTypes()
 	gen.SetPackageNames()
 	gen.BuildTypeNameMap()
-	gen.GeneratePlugin(logfields.NewPlugin(useGogo))
+	gen.GeneratePlugin(plugin.NewPlugin(useGogo))
 
 	for i := 0; i < len(gen.Response.File); i++ {
 		gen.Response.File[i].Name = proto.String(strings.Replace(*gen.Response.File[i].Name, ".pb.go", ".logfields.pb.go", -1))

@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package improbable;
 
-option go_package = "logfields";
+option go_package = "github.com/improbable-io/go-proto-logfields;logfields";
 
 import "google/protobuf/descriptor.proto";
 

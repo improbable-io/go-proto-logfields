@@ -5,18 +5,18 @@ package logfieldstest
 import (
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 )
 
 type msg interface {
 	LogFields() map[string]string
-	ExtractRequestFields(map[string]interface{})
+	ExtractRequestFields([]string, map[string]interface{})
 }
 
 func assertExtracts(t *testing.T, expected map[string]interface{}, msg msg) {
 	m := map[string]interface{}{}
-	msg.ExtractRequestFields(m)
+	msg.ExtractRequestFields(nil, m)
 	assert.Equal(t, expected, m)
 }
 
@@ -81,16 +81,18 @@ func TestEmbeddedMessagesEmpty(t *testing.T) {
 	msg := &EmbeddedTest3{
 		SingleMessage: &EmbeddedTest3_Inner{},
 		RepeatedMessages: []*EmbeddedTest3_Inner{
-			&EmbeddedTest3_Inner{},
+			{},
 		},
 	}
 	assert.Equal(t, map[string]string{
-		"a_string": "",
-		"log_text": "",
+		"a_string":       "",
+		"log_text":       "",
+		"inner.log_text": "",
 	}, msg.LogFields())
 	assertExtracts(t, map[string]interface{}{
-		"a_string": "",
-		"log_text": "",
+		"a_string":       "",
+		"log_text":       "",
+		"inner.log_text": "",
 	}, msg)
 }
 
@@ -160,7 +162,7 @@ func TestMapEntry(t *testing.T) {
 			"a_string_key": "a_string_value",
 		},
 		AStringToInnerMap: map[string]*MapTest3_Inner{
-			"a_inner_key": &MapTest3_Inner{
+			"a_inner_key": {
 				SingleInnerString: "a_inner_string_value",
 			},
 		},
@@ -218,29 +220,31 @@ func TestEmptyProto2WithChild(t *testing.T) {
 		OptionalMessage: &TestMessage2_Inner{},
 	}
 	assert.Equal(t, map[string]string{
-		"log_text":   "",
-		"opt_int":    "0",
-		"req_int":    "0",
-		"opt_string": "",
-		"req_string": "",
-		"opt_bytes":  "",
-		"req_bytes":  "",
+		"optional.log_text": "",
+		"required.log_text": "",
+		"opt_int":           "0",
+		"req_int":           "0",
+		"opt_string":        "",
+		"req_string":        "",
+		"opt_bytes":         "",
+		"req_bytes":         "",
 	}, msg.LogFields())
 	assertExtracts(t, map[string]interface{}{
-		"log_text":   "",
-		"opt_int":    int32(0),
-		"req_int":    int32(0),
-		"opt_string": "",
-		"req_string": "",
-		"opt_bytes":  []byte(nil),
-		"req_bytes":  []byte(nil),
+		"optional.log_text": "",
+		"required.log_text": "",
+		"opt_int":           int32(0),
+		"req_int":           int32(0),
+		"opt_string":        "",
+		"req_string":        "",
+		"opt_bytes":         []byte(nil),
+		"req_bytes":         []byte(nil),
 	}, msg)
 }
 
 func TestProto2Formatting(t *testing.T) {
 	msg := &TestMessage2{
-		RequiredInteger: proto.Int(42),
-		OptionalInteger: proto.Int(42),
+		RequiredInteger: proto.Int32(42),
+		OptionalInteger: proto.Int32(42),
 		RequiredString:  proto.String("23"),
 		OptionalString:  proto.String("23"),
 		RequiredBytes:   []byte{1, 'a'},
@@ -253,21 +257,23 @@ func TestProto2Formatting(t *testing.T) {
 		},
 	}
 	assert.Equal(t, map[string]string{
-		"log_text":   "optional message text",
-		"opt_int":    "42",
-		"req_int":    "42",
-		"opt_string": "23",
-		"req_string": "23",
-		"opt_bytes":  "\x01a",
-		"req_bytes":  "\x01a",
+		"optional.log_text": "optional message text",
+		"required.log_text": "required message text",
+		"opt_int":           "42",
+		"req_int":           "42",
+		"opt_string":        "23",
+		"req_string":        "23",
+		"opt_bytes":         "\x01a",
+		"req_bytes":         "\x01a",
 	}, msg.LogFields())
 	assertExtracts(t, map[string]interface{}{
-		"log_text":   "optional message text",
-		"opt_int":    int32(42),
-		"req_int":    int32(42),
-		"opt_string": "23",
-		"req_string": "23",
-		"opt_bytes":  []byte{1, 'a'},
-		"req_bytes":  []byte{1, 'a'},
+		"optional.log_text": "optional message text",
+		"required.log_text": "required message text",
+		"opt_int":           int32(42),
+		"req_int":           int32(42),
+		"opt_string":        "23",
+		"req_string":        "23",
+		"opt_bytes":         []byte{1, 'a'},
+		"req_bytes":         []byte{1, 'a'},
 	}, msg)
 }

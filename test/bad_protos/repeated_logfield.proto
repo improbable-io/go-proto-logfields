@@ -1,9 +1,11 @@
 syntax = "proto3";
+
 package logfields_test;
-option go_package = "logfieldstest";
+
+option go_package = "test/bad_protos;logfieldstest";
 
 import "logfields.proto";
 
 message RepeatedLogFieldTest {
-    repeated string some_strings = 1 [(improbable.logfield) = {name: "text"}];
+  repeated string some_strings = 1 [ (improbable.logfield) = {name : "text"} ];
 }

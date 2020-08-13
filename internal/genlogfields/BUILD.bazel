@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["genlogfields.go"],
+    importpath = "github.com/improbable-io/go-proto-logfields/internal/genlogfields",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//:go_default_library",
+        "@org_golang_google_protobuf//compiler/protogen:go_default_library",
+        "@org_golang_google_protobuf//proto:go_default_library",
+        "@org_golang_google_protobuf//reflect/protoreflect:go_default_library",
+    ],
+)

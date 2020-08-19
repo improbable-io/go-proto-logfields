@@ -5,8 +5,9 @@ load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 proto_library(
     name = "example_proto",
     srcs = ["service.proto"],
+    import_prefix = "github.com/mwitkow/go-proto-validators",
     visibility = ["//visibility:public"],
-    deps = ["//github.com/improbable-io/go-proto-logfields:logfields_proto"],
+    deps = ["//:logfields_proto"],
 )
 
 go_proto_library(
@@ -14,7 +15,7 @@ go_proto_library(
     importpath = "github.com/improbable-io/go-proto-logfields/examples",
     proto = ":example_proto",
     visibility = ["//visibility:public"],
-    deps = ["//github.com/improbable-io/go-proto-logfields:go_default_library"],
+    deps = ["//:go_default_library"],
 )
 
 go_library(

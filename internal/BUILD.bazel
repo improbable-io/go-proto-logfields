@@ -1,0 +1,32 @@
+load("@io_bazel_rules_go//proto:compiler.bzl", "go_proto_compiler")
+
+_WELL_KNOWN_TYPES = [
+    "any",
+    "api",
+    "compiler_plugin",
+    "descriptor",
+    "duration",
+    "empty",
+    "field_mask",
+    "source_context",
+    "struct",
+    "timestamp",
+    "type",
+    "wrappers",
+]
+
+go_proto_compiler(
+    name = "go_proto",
+    plugin = "@org_golang_google_protobuf//cmd/protoc-gen-go:protoc-gen-go",
+    suffix = ".pb.go",
+    valid_archive = True,
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_github_golang_protobuf//proto:go_default_library",
+        "@com_github_golang_protobuf//protoc-gen-go/descriptor:go_default_library",
+        "@org_golang_google_protobuf//proto:go_default_library",
+        "@org_golang_google_protobuf//reflect/protoreflect:go_default_library",
+        "@org_golang_google_protobuf//runtime/protoiface:go_default_library",
+        "@org_golang_google_protobuf//runtime/protoimpl:go_default_library",
+    ] + ["@io_bazel_rules_go//proto/wkt:{}_go_proto".format(wkt) for wkt in _WELL_KNOWN_TYPES],
+)

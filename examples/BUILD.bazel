@@ -1,0 +1,31 @@
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+
+proto_library(
+    name = "example_proto",
+    srcs = ["service.proto"],
+    import_prefix = "github.com/mwitkow/go-proto-validators",
+    visibility = ["//visibility:public"],
+    deps = ["//:logfields_proto"],
+)
+
+go_proto_library(
+    name = "example_go_proto",
+    importpath = "github.com/improbable-io/go-proto-logfields/examples",
+    proto = ":example_proto",
+    visibility = ["//visibility:public"],
+    deps = ["//:go_default_library"],
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["service.logfields.pb.go"],
+    embed = [":example_go_proto"],
+    importpath = "github.com/improbable-io/go-proto-logfields/examples",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:go_default_library",
+        "@com_github_golang_protobuf//proto:go_default_library",
+    ],
+)

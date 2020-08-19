@@ -1,11 +1,11 @@
 package logfields
 
-import "github.com/gogo/protobuf/proto"
+import "google.golang.org/protobuf/proto"
 
 type protoWithLogFields interface {
 	proto.Message
 	LogFields() map[string]string
-	ExtractRequestFields(dst map[string]interface{})
+	ExtractRequestFields(prefixes []string, dst map[string]interface{})
 }
 
 func ExtractLogFieldsFromMessage(message proto.Message) map[string]string {
@@ -16,8 +16,8 @@ func ExtractLogFieldsFromMessage(message proto.Message) map[string]string {
 	return map[string]string{}
 }
 
-func ExtractRequestFieldsFromMessage(message proto.Message, dst map[string]interface{}) {
+func ExtractRequestFieldsFromMessage(message proto.Message, prefixes []string, dst map[string]interface{}) {
 	if m, ok := message.(protoWithLogFields); ok {
-		m.ExtractRequestFields(dst)
+		m.ExtractRequestFields(prefixes, dst)
 	}
 }

@@ -7,48 +7,51 @@ option go_package = "logfieldstest";
 import "github.com/improbable-io/go-proto-logfields/logfields.proto";
 
 message UnloggedTest3 {
-    int32 single_integer = 1;
-    string single_string = 3;
-    bytes single_bytes = 5;
+  int32 single_integer = 1;
+  string single_string = 3;
+  bytes single_bytes = 5;
 }
 
 message FieldsTest3 {
-    int32 single_integer = 1 [(improbable.logfield) = {name: "an_int"}];
-    string single_string = 3 [(improbable.logfield) = {name: "a_string"}];
-    bytes single_bytes = 5 [(improbable.logfield) = {name: "some_bytes"}];
+  int32 single_integer = 1 [ (improbable.logfield) = {name : "an_int"} ];
+  string single_string = 3 [ (improbable.logfield) = {name : "a_string"} ];
+  bytes single_bytes = 5 [ (improbable.logfield) = {name : "some_bytes"} ];
 }
 
 message EmbeddedTest3 {
-    message Inner {
-        string text = 1 [(improbable.logfield) = {name: "log_text"}];
-    }
+  message Inner {
+    string text = 1 [ (improbable.logfield) = {name : "log_text"} ];
+  }
 
-    string single_string = 1 [(improbable.logfield) = {name: "a_string"}];
-    string outer_text = 2 [(improbable.logfield) = {name: "log_text"}];
+  string single_string = 1 [ (improbable.logfield) = {name : "a_string"} ];
+  string outer_text = 2 [ (improbable.logfield) = {name : "log_text"} ];
 
-    Inner single_message = 3;
-    repeated Inner repeated_messages = 4;
+  Inner single_message = 3 [ (improbable.logfield) = {prefix : "inner"} ];
+  repeated Inner repeated_messages = 4;
 }
 
 message OneOfTest3 {
-    message Inner {
-        string single_inner_string = 1 [(improbable.logfield) = {name: "log_text"}];
-    }
+  message Inner {
+    string single_inner_string = 1
+        [ (improbable.logfield) = {name : "log_text"} ];
+  }
 
-    string outer_text = 2 [(improbable.logfield) = {name: "a_string"}];
+  string outer_text = 2 [ (improbable.logfield) = {name : "a_string"} ];
 
-    oneof a_oneof {
-        string unlogged_oneof_string = 3;
-        string single_oneof_string = 4 [(improbable.logfield) = {name: "log_text"}];
-        Inner single_oneof_message = 5;
-    }
+  oneof a_oneof {
+    string unlogged_oneof_string = 3;
+    string single_oneof_string = 4
+        [ (improbable.logfield) = {name : "log_text"} ];
+    Inner single_oneof_message = 5;
+  }
 }
 
 message MapTest3 {
-    message Inner {
-        string single_inner_string = 1 [(improbable.logfield) = {name: "log_text"}];
-    }
+  message Inner {
+    string single_inner_string = 1
+        [ (improbable.logfield) = {name : "log_text"} ];
+  }
 
-    map<string, string> a_string_map = 1;
-    map<string, Inner> a_string_to_inner_map = 2;
+  map<string, string> a_string_map = 1;
+  map<string, Inner> a_string_to_inner_map = 2;
 }

@@ -7,18 +7,26 @@ option go_package = "logfieldstest";
 import "github.com/improbable-io/go-proto-logfields/logfields.proto";
 
 message TestMessage2 {
-    message Inner {
-        optional string text = 1 [(improbable.logfield) = {name: "log_text"}];
-    }
+  message Inner {
+    optional string text = 1 [ (improbable.logfield) = {name : "log_text"} ];
+  }
 
-    required int32 required_integer = 1 [(improbable.logfield) = {name: "req_int"}];
-    optional int32 optional_integer = 2 [(improbable.logfield) = {name: "opt_int"}];
-    required string required_string = 4 [(improbable.logfield) = {name: "req_string"}];
-    optional string optional_string = 5 [(improbable.logfield) = {name: "opt_string"}];
-    required bytes required_bytes = 7 [(improbable.logfield) = {name: "req_bytes"}];
-    optional bytes optional_bytes = 8 [(improbable.logfield) = {name: "opt_bytes"}];
+  required int32 required_integer = 1
+      [ (improbable.logfield) = {name : "req_int"} ];
+  optional int32 optional_integer = 2
+      [ (improbable.logfield) = {name : "opt_int"} ];
+  required string required_string = 4
+      [ (improbable.logfield) = {name : "req_string"} ];
+  optional string optional_string = 5
+      [ (improbable.logfield) = {name : "opt_string"} ];
+  required bytes required_bytes = 7
+      [ (improbable.logfield) = {name : "req_bytes"} ];
+  optional bytes optional_bytes = 8
+      [ (improbable.logfield) = {name : "opt_bytes"} ];
 
-    required Inner required_message = 10;
-    optional Inner optional_message = 11;
-    repeated Inner repeated_messages = 12;
+  required Inner required_message = 10
+      [ (improbable.logfield) = {prefix : "required"} ];
+  optional Inner optional_message = 11
+      [ (improbable.logfield) = {prefix : "optional"} ];
+  repeated Inner repeated_messages = 12;
 }

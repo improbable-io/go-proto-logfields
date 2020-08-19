@@ -22,17 +22,16 @@ func GenerateFile(gen *protogen.Plugin, file *protogen.File) *protogen.Generated
 	g.P()
 	g.P("package ", file.GoPackageName)
 	g.P()
-	g.P("import (")
-	g.P(`"fmt"`)
-	g.P(`"strings"`)
-	g.P(")")
-	g.P()
 
 	generateFileContent(gen, file, g)
 	return g
 }
 
-var logfieldsPkg = protogen.GoImportPath("github.com/improbable-io/go-proto-logfields")
+var (
+	fmtPkg       = protogen.GoImportPath("fmt")
+	stringsPkg   = protogen.GoImportPath("strings")
+	logfieldsPkg = protogen.GoImportPath("github.com/improbable-io/go-proto-logfields")
+)
 
 func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile) {
 	if !validateFileLogNames(gen, file) {
@@ -269,7 +268,8 @@ func generateLogHandlerLiteralsMap(g *protogen.GeneratedFile, msg *protogen.Mess
 		if log == nil {
 			continue
 		}
-		g.P(fmt.Sprintf(`"%s": %s,`, log.GetName(), fieldValue("m", field)))
+		// NB: See the comment on the 'fieldValue' on why this is so elaborate.
+		g.P(append(append([]interface{}{`"`, log.GetName(), `": `}, fieldValue("m", field)...), ",")...)
 	}
 	g.P("}")
 	g.P()
@@ -300,7 +300,8 @@ func generateLogHandlerOneOfMap(g *protogen.GeneratedFile, oneOf *protogen.Oneof
 				g.P(oneOfMapVar, " = ", logfieldsPkg.Ident("ExtractLogFieldsFromMessage"), "(", fieldRef, ")")
 			}
 		} else {
-			g.P(oneOfMapVar, fmt.Sprintf(` = map[string]string{"%s": %s}`, log.GetName(), fieldValue("m", field)))
+			// NB: See the comment on the 'fieldValue' on why this is so elaborate.
+			g.P(append(append([]interface{}{oneOfMapVar, ` = map[string]string{"`, log.GetName(), `": `}, fieldValue("m", field)...), "}")...)
 		}
 	}
 	g.P("default:")
@@ -350,8 +351,7 @@ func generateExtractRequestFields(g *protogen.GeneratedFile, msg *protogen.Messa
 			}
 			g.P(logfieldsPkg.Ident("ExtractRequestFieldsFromMessage"), "(m.Get", field.GoName, "(), ", prefixesVar, ", dst)")
 		} else if log != nil {
-			logKey := fmt.Sprintf(`strings.Join(append(prefixes, "%s"), ".")`, log.GetName())
-			g.P("dst[", logKey, "] = m.Get", field.GoName, "()")
+			g.P("dst[", stringsPkg.Ident("Join"), `(append(prefixes, "`, log.GetName(), `"), ".")] = m.Get`, field.GoName, "()")
 		}
 
 		if field.Oneof != nil {
@@ -382,17 +382,22 @@ func fieldPrefix(fieldStack []*protogen.Field) string {
 	return prefix
 }
 
-func fieldValue(parentStructVar string, field *protogen.Field) string {
-	fieldValue := fmt.Sprintf(`%s.Get%s()`, parentStructVar, field.GoName)
+// fieldValue produces a slice that should be fed directly into the generated file's printer method
+// `g.P()`. We can not return a string as that would lead the 'GoImportPath.Ident()' method not to
+// be handled approriately, producing invalid code and missing import declarations.
+func fieldValue(parentStructVar string, field *protogen.Field) []interface{} {
+	valueExpr := []interface{}{parentStructVar, ".Get", field.GoName, "()"}
 	switch field.Desc.Kind() {
 	case protoreflect.StringKind:
 		// No special casing required.
 	case protoreflect.BytesKind:
-		fieldValue = fmt.Sprintf("string(%s)", fieldValue)
+		valueExpr = append([]interface{}{"string("}, valueExpr...)
+		valueExpr = append(valueExpr, ")")
 	default:
-		fieldValue = fmt.Sprintf(`fmt.Sprintf("%%v", %s)`, fieldValue)
+		valueExpr = append([]interface{}{fmtPkg.Ident("Sprintf"), `("%v", `}, valueExpr...)
+		valueExpr = append(valueExpr, ")")
 	}
-	return fieldValue
+	return valueExpr
 }
 
 func extractionError(fieldName protoreflect.FullName) error {

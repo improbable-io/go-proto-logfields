@@ -26,7 +26,7 @@ go_proto_compiler(
 proto_library(
     name = "logfields_proto",
     srcs = ["logfields.proto"],
-    import_prefix = "github.com/mwitkow/go-proto-validators",
+    import_prefix = "github.com/improbable-io/go-proto-logfields",
     visibility = ["//visibility:public"],
     deps = ["@com_google_protobuf//:descriptor_proto"],
 )
